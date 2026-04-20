@@ -40,3 +40,9 @@ def test_extract_from_pdf_requires_file(tmp_path):
     fake_pdf.write_bytes(b"not a real pdf")
     with pytest.raises(Exception):
         extract_from_pdf(str(fake_pdf))
+
+def test_extract_from_text_empty_raises():
+    with pytest.raises(ValueError):
+        extract_from_text("")
+    with pytest.raises(ValueError):
+        extract_from_text("   \n\n   ")

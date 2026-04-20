@@ -41,6 +41,8 @@ def extract_from_url(url: str) -> IngestResult:
 def extract_from_text(raw: str) -> IngestResult:
     """直接使用用户提供的文本"""
     text = _clean_text(raw)
+    if not text:
+        raise ValueError("输入的文本为空")
     return IngestResult(
         text=text,
         source_type="text",
