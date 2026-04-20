@@ -1,0 +1,30 @@
+/* bold-signal — 强对比商务风，适合 business 通用场景 */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap');
+
+:root {
+  --color-bg: #0a0a0a;
+  --color-surface: #141414;
+  --color-surface-2: #1f1f1f;
+  --color-primary: #f97316;
+  --color-secondary: #fbbf24;
+  --color-accent: #ef4444;
+  --color-text: #ffffff;
+  --color-text-muted: #a1a1aa;
+  --color-text-subtle: #52525b;
+  --color-border: rgba(249, 115, 22, 0.25);
+  --gradient-heading: linear-gradient(135deg, #f97316 0%, #fbbf24 100%);
+  --gradient-bg: linear-gradient(160deg, #0a0a0a 0%, #111111 100%);
+  --gradient-card: linear-gradient(135deg, rgba(249,115,22,0.06), rgba(251,191,36,0.03));
+  --gradient-accent-line: linear-gradient(90deg, #f97316, #fbbf24);
+  --font-display: 'Inter', system-ui, sans-serif;
+  --font-weight-display: 900;
+  --font-weight-heading: 700;
+  --card-bg: rgba(249, 115, 22, 0.05);
+  --card-border: rgba(249, 115, 22, 0.2);
+  --card-shadow: 0 4px 24px rgba(249, 115, 22, 0.12);
+  --card-radius: 8px;
+  --blob-opacity: 0.08;
+  --enable-blobs: 1;
+  --enable-glass: 0;
+  --enable-gradient-text: 1;
+}

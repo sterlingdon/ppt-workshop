@@ -1,0 +1,29 @@
+/* aurora-borealis — 深色极光渐变，适合 technology/AI 领域 */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
+
+:root {
+  --color-bg: #050818;
+  --color-surface: #0d1427;
+  --color-surface-2: #162040;
+  --color-primary: #6366f1;
+  --color-secondary: #38bdf8;
+  --color-accent: #a78bfa;
+  --color-text: #f1f5f9;
+  --color-text-muted: #94a3b8;
+  --color-text-subtle: #475569;
+  --color-border: rgba(99, 102, 241, 0.2);
+  --gradient-heading: linear-gradient(135deg, #a78bfa 0%, #38bdf8 100%);
+  --gradient-bg: radial-gradient(ellipse at 20% 50%, #1a1060 0%, #050818 50%, #0a2040 100%);
+  --gradient-card: linear-gradient(135deg, rgba(99,102,241,0.08), rgba(56,189,248,0.04));
+  --gradient-accent-line: linear-gradient(90deg, #6366f1, #38bdf8, #a78bfa);
+  --font-display: 'Inter', system-ui, sans-serif;
+  --font-body: 'Inter', system-ui, sans-serif;
+  --font-weight-display: 800;
+  --card-bg: rgba(99, 102, 241, 0.06);
+  --card-border: rgba(99, 102, 241, 0.2);
+  --card-shadow: 0 4px 32px rgba(99, 102, 241, 0.15);
+  --blob-opacity: 0.14;
+  --enable-blobs: 1;
+  --enable-glass: 1;
+  --enable-gradient-text: 1;
+}
