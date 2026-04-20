@@ -1,0 +1,7 @@
+output/
+__pycache__/
+*.pyc
+.env
+*.env
+image_cache/
+.superpowers/
