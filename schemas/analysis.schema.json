@@ -1,0 +1,45 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "required": ["domain", "title", "key_points", "suggested_theme"],
+  "properties": {
+    "domain": {
+      "type": "string",
+      "enum": ["technology", "finance", "healthcare", "startup", "education", "business", "cybersecurity", "sustainability", "gaming", "culture", "other"]
+    },
+    "title": { "type": "string", "minLength": 1, "maxLength": 200 },
+    "summary": { "type": "string", "maxLength": 500 },
+    "key_points": { "type": "array", "items": { "type": "string" }, "minItems": 1, "maxItems": 10 },
+    "statistics": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["value", "label"],
+        "properties": {
+          "value": { "type": "string" },
+          "label": { "type": "string" },
+          "context": { "type": "string" }
+        }
+      }
+    },
+    "quotes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["text"],
+        "properties": {
+          "text": { "type": "string" },
+          "author": { "type": "string" },
+          "role": { "type": "string" }
+        }
+      }
+    },
+    "entities": { "type": "array", "items": { "type": "string" } },
+    "complexity": { "type": "string", "enum": ["simple", "intermediate", "expert"] },
+    "suggested_theme": {
+      "type": "string",
+      "enum": ["aurora-borealis", "bold-signal", "editorial-ink", "tokyo-neon", "venture-pitch", "midnight-cathedral", "cyberpunk-terminal", "clinical-precision", "forest-floor", "sunlit-gallery"]
+    },
+    "language": { "type": "string", "default": "zh" }
+  }
+}

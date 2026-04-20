@@ -1,0 +1,39 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "required": ["theme", "style_constraints", "slides"],
+  "properties": {
+    "theme": { "type": "string" },
+    "style_constraints": {
+      "type": "object",
+      "required": ["heading_emphasis", "card_style", "stat_style", "bullet_style", "image_style_fingerprint"],
+      "properties": {
+        "heading_emphasis": { "type": "string", "enum": ["gradient", "solid", "glow"] },
+        "card_style": { "type": "string", "enum": ["glass", "solid-surface", "outlined", "accent-border-left"] },
+        "stat_style": { "type": "string", "enum": ["gradient-text", "accent-color", "white-glow"] },
+        "bullet_style": { "type": "string", "enum": ["dot", "check", "emoji", "icon", "dash"] },
+        "divider_style": { "type": "string", "enum": ["gradient-line", "dot-separator", "none"] },
+        "image_style_fingerprint": { "type": "array", "items": { "type": "string" }, "minItems": 2, "maxItems": 6 }
+      }
+    },
+    "slides": {
+      "type": "array",
+      "minItems": 8,
+      "maxItems": 25,
+      "items": {
+        "type": "object",
+        "required": ["index", "type", "title"],
+        "properties": {
+          "index": { "type": "integer", "minimum": 0 },
+          "type": {
+            "type": "string",
+            "enum": ["title", "agenda", "section-divider", "bullet-list", "two-column", "stats-callout", "timeline", "card-grid-2", "card-grid-3", "card-grid-6", "chart", "image-hero", "quote-callout", "comparison", "fact-list", "exec-summary", "conclusion"]
+          },
+          "title": { "type": "string" },
+          "needs_image": { "type": "boolean" },
+          "notes": { "type": "string" }
+        }
+      }
+    }
+  }
+}

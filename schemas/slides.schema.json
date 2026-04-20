@@ -1,0 +1,32 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "required": ["index", "type", "heading", "content"],
+    "properties": {
+      "index": { "type": "integer" },
+      "type": { "type": "string" },
+      "heading": { "type": "string" },
+      "subheading": { "type": "string" },
+      "content": { "type": "object" },
+      "image_request": {
+        "type": "object",
+        "required": ["description", "fallback_chain"],
+        "properties": {
+          "description": { "type": "string" },
+          "preferred_strategy": { "type": "string", "enum": ["svg", "canvas", "icon", "search", "ai"] },
+          "fallback_chain": {
+            "type": "array",
+            "items": { "type": "string", "enum": ["svg", "canvas", "icon", "search", "ai"] },
+            "minItems": 1
+          },
+          "svg_code": { "type": "string" },
+          "icon_name": { "type": "string" },
+          "search_query": { "type": "string" },
+          "ai_prompt": { "type": "string" }
+        }
+      }
+    }
+  }
+}
