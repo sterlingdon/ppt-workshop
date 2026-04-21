@@ -6,13 +6,14 @@ This Vite app is the active visual renderer for the PPT skill.
 
 - Render generated slide components from `web/src/slides/`.
 - Provide reusable style presets from `web/src/styles/presets.ts`.
+- Provide AI-facing style guidance from `web/src/styles/STYLE_GUIDE.md`.
 - Expose two modes:
   - normal preview mode for local browsing
   - `?extract=1` mode for Playwright layout extraction
 
 ## Style Presets
 
-Agents should choose a preset first, then build slide components from its tokens and recipes instead of inventing a new visual system per slide.
+Agents should choose a preset first, choose one of its `slidePatterns`, then build slide components from its tokens and recipes instead of inventing a new visual system per slide.
 
 ```tsx
 import { getDeckStylePreset, styleVars } from './styles'
@@ -34,8 +35,25 @@ Available presets:
 
 Generated project artifacts should go under `output/projects/<project-id>/`, not directly into `output/`.
 
-`tools/builder.py --project <project-id>` writes:
+The durable slide source for a deck is:
+
+- `output/projects/<project-id>/slides/`
+
+The active renderer slot is:
+
+- `web/src/slides/`
+
+Use:
+
+```bash
+python ../tools/ppt_workflow.py snapshot-slides --project <project-id>
+python ../tools/ppt_workflow.py activate --project <project-id>
+python ../tools/ppt_workflow.py build --project <project-id>
+```
+
+`ppt_workflow.py build` writes:
 
 - `layout_manifest.json`
 - `assets/slide_*_bg.png`
 - `assets/slide_*_comp_*.png`
+- `presentation.pptx`

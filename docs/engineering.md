@@ -54,7 +54,7 @@ output/projects/<project-id>/
 └── slides/
 ```
 
-The React source of the currently active deck still lives in `web/src/slides/` during this first restructuring phase. Runtime outputs, extracted screenshots, manifests, and final PPTX files must live in the project workspace.
+`output/projects/<project-id>/slides/` is the durable source of truth for generated deck React code. `web/src/slides/` is the active Vite renderer slot. Use `tools/ppt_workflow.py snapshot-slides` to persist generated source and `tools/ppt_workflow.py activate` to load a project into the renderer slot.
 
 ### Responsibility Boundaries
 
@@ -68,6 +68,22 @@ The React source of the currently active deck still lives in `web/src/slides/` d
 | 5 | Python | slides.json | slides_with_images.json | Resolve images via 5-level fallback |
 | 6 | Python/Playwright | React app | layout_manifest.json + assets/ | Extract backgrounds/components/text boxes |
 | 7 | Python | layout_manifest.json | presentation.pptx | Stitch PPTX from images + native text |
+
+### Unified CLI
+
+`tools/ppt_workflow.py` is the main operator entry point:
+
+```bash
+python tools/ppt_workflow.py init --name "Deck Name"
+python tools/ppt_workflow.py snapshot-slides --project <project-id>
+python tools/ppt_workflow.py activate --project <project-id>
+python tools/ppt_workflow.py validate --project <project-id>
+python tools/ppt_workflow.py extract --project <project-id>
+python tools/ppt_workflow.py export --project <project-id>
+python tools/ppt_workflow.py build --project <project-id>
+```
+
+`build` activates project slides, validates source markers, extracts layout/assets, exports PPTX, then validates final outputs.
 
 ---
 
@@ -257,6 +273,7 @@ Images cached by MD5 key (chain + content descriptor) in `image_cache/`. Cache i
 ### React Style Preset Registry
 
 The active React renderer uses `web/src/styles/presets.ts` as the source of reusable deck styles. This registry is meant for both code and AI instructions: it includes design tokens, layout rules, component recipes, and things to avoid.
+The companion guide is `web/src/styles/STYLE_GUIDE.md`.
 
 Current presets:
 
@@ -289,6 +306,8 @@ Primary CSS variables exposed by `styleVars()`:
 - `--ppt-border`
 - `--ppt-font-display`
 - `--ppt-font-body`
+
+Each preset also exposes `slidePatterns`, which are named layout archetypes. Agents should pick a slide pattern before writing JSX so repeated deck types converge on proven structures instead of improvising every page.
 
 ### Legacy CSS Themes
 
@@ -333,6 +352,18 @@ Variable categories:
 
 ## 6. Hybrid PPTX Architecture
 
+### Quality Gates
+
+`tools/quality_gate.py` validates:
+
+- project workspace and slide source directory exist
+- `index.ts` exists in the project slide source directory
+- every `Slide_*.tsx` has `data-ppt-slide`
+- the deck has at least one `data-ppt-text`
+- slide code uses style presets or `--ppt-*` variables
+- manifest-referenced assets exist
+- `presentation.pptx` is not empty when present
+
 ### Manifest-Based Approach
 
 `tools/builder.py` opens the React renderer at `?extract=1`, then extracts three kinds of objects:
@@ -350,10 +381,7 @@ It writes `layout_manifest.json`. `tools/pptx_exporter.py` consumes that manifes
 Run:
 
 ```bash
-python tools/builder.py --project <project-id>
-python tools/pptx_exporter.py \
-  output/projects/<project-id>/layout_manifest.json \
-  output/projects/<project-id>/presentation.pptx
+python tools/ppt_workflow.py build --project <project-id>
 ```
 
 ---
@@ -381,11 +409,14 @@ ppt-workshop/
 │   ├── image_orchestrator.py     # Agent 5: 5-level image fallback
 │   ├── html_renderer.py          # Legacy JSON → HTML presentation renderer
 │   ├── presentation_workspace.py # Project directory management
+│   ├── deck_sources.py           # Copy project slides to/from active renderer slot
+│   ├── quality_gate.py           # Structural validation before/after export
+│   ├── ppt_workflow.py           # Unified workflow CLI
 │   ├── builder.py                # React → layout manifest extraction
 │   └── pptx_exporter.py          # Manifest → Hybrid PPTX
 ├── web/
 │   ├── src/slides/               # Active generated React slide components
-│   └── src/styles/presets.ts     # Reusable style preset registry
+│   └── src/styles/               # Reusable style preset registry and guide
 ├── themes/
 │   ├── _base.css                 # CSS variable interface (all themes extend this)
 │   ├── aurora-borealis.css       # Dark aurora gradient theme

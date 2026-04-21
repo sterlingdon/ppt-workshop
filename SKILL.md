@@ -23,7 +23,7 @@ description: Use when the user wants to convert an article, URL, or document int
 每次生成 PPT 前，先建立独立项目目录，避免多个 PPT 互相覆盖：
 
 ```bash
-python -c "from tools.presentation_workspace import create_project_workspace; print(create_project_workspace('演示文稿标题').project_id)"
+python tools/ppt_workflow.py init --name "演示文稿标题"
 ```
 
 默认目录结构：
@@ -42,6 +42,8 @@ output/projects/<project-id>/
 └── slides/
 ```
 
+`output/projects/<project-id>/slides/` 是该 deck 的长期 React 源码存档。`web/src/slides/` 只是当前 Vite 渲染槽。
+
 每步开始前检查 `output/projects/<project-id>/` 是否已有对应文件。如果存在且非空，跳过该步骤：
 
 ```
@@ -55,6 +57,22 @@ presentation.pptx      → 跳过 Agent 7
 ```
 
 强制重跑某步：删除对应文件后重新运行。
+
+常用命令：
+
+```bash
+# 将当前 web/src/slides/ 生成源码保存到项目工作区
+python tools/ppt_workflow.py snapshot-slides --project <project-id>
+
+# 激活某个项目的 slides 到 web/src/slides/
+python tools/ppt_workflow.py activate --project <project-id>
+
+# 校验项目结构、data-ppt-* 标记、manifest 资产和 PPTX
+python tools/ppt_workflow.py validate --project <project-id>
+
+# 激活 slides → Playwright 抽取 → PPTX 导出 → 输出校验
+python tools/ppt_workflow.py build --project <project-id>
+```
 
 ## Agent 1 · 文章提取
 
@@ -208,13 +226,13 @@ print(f'✓ outline.json 验证通过，共 {len(data[\"slides\"])} 张幻灯片
 
 **风格预设（必须优先引用）**：
 
-React 端维护了可复用风格库：`web/src/styles/presets.ts`。目前包含：
+React 端维护了可复用风格库：`web/src/styles/presets.ts`，配套说明见 `web/src/styles/STYLE_GUIDE.md`。目前包含：
 
 - `aurora-borealis`：深色科技、紫青极光、玻璃卡片、适合 AI/技术/网络安全
 - `bold-signal`：黑底高对比、橙色信号条、适合商业/创业/决策汇报
 - `editorial-ink`：浅色编辑部风、衬线标题、适合教育/文化/内容型报告
 
-写幻灯片组件时先选择 preset，并在根节点注入变量：
+写幻灯片组件时先选择 preset，再选择 `preset.slidePatterns[].id` 作为布局原型，最后在根节点注入变量：
 
 ```tsx
 import { getDeckStylePreset, styleVars } from '../styles'
@@ -229,6 +247,12 @@ const preset = getDeckStylePreset('aurora-borealis')
 ```
 
 优先使用 `var(--ppt-bg)`, `var(--ppt-surface)`, `var(--ppt-primary)`, `var(--ppt-secondary)`, `var(--ppt-accent)`, `var(--ppt-text)`, `var(--ppt-muted)`, `var(--ppt-border)`, `var(--ppt-font-display)`, `var(--ppt-font-body)`，不要在每张幻灯片里重新发明一套色彩体系。
+
+完成 `web/src/slides/` 后必须保存源码：
+
+```bash
+python tools/ppt_workflow.py snapshot-slides --project <project-id>
+```
 
 **编程规范**：
 1. **彻底放飞排版**：不要拘泥于死板的布局！使用 Tailwind CSS 尽情施展排版、渐变、光影、悬浮毛玻璃、卡片交错等高级现代视觉效果。你可以混用各种布局（比如 Bento 便当盒、左大侧图边框、悬浮重叠等）。
@@ -392,7 +416,7 @@ python tools/image_orchestrator.py \
 一键启动 Vite 服务，并由 Python 的 Playwright 发起并执行“原生元素双轨脱水”动作（背景元素高保真快照，文本元素节点坐标记录）。
 
 ```bash
-python tools/builder.py --project <project-id>
+python tools/ppt_workflow.py extract --project <project-id>
 ```
 该工具将：
 1. 自动调用子进程在后台运行 `npm run dev` 唤醒 Web 端。
@@ -409,9 +433,7 @@ python tools/builder.py --project <project-id>
 依据上一步提取出来的碎图与文字骨架表，反向生成真正的高颜值且拥有完美字体的可编辑 PPT。
 
 ```bash
-python tools/pptx_exporter.py \
-  output/projects/<project-id>/layout_manifest.json \
-  output/projects/<project-id>/presentation.pptx
+python tools/ppt_workflow.py export --project <project-id>
 ```
 
 **输出文件**：
