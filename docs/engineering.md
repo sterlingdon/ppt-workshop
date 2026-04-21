@@ -145,45 +145,81 @@ Array of slide objects. Each slide:
 
 ---
 
-## 4. Image Strategy (5-Level Fallback)
+## 4. Image Strategy (8-Level Fallback)
+
+### Priority Principle
+
+**Agent generates first, external APIs second.** The agent itself is an SVG generator — it produces `diagram_nodes`/`diagram_edges` or inline `svg_code`, and Python tools render professional SVG. External APIs (Pexels, Pixabay, Unsplash) are fallbacks for photo-type content only.
 
 ### Level Decision Matrix
 
-| Slide Content | Recommended Strategy | fallback_chain |
-|---------------|---------------------|----------------|
-| Data / statistics | SVG (Claude-generated) | ["svg", "icon"] |
-| Charts | Canvas (Chart.js) | ["canvas"] |
-| Decorative / card icons | Icon (Lucide CDN) | ["icon", "svg"] |
-| Scene / atmosphere | Search (Unsplash) | ["search", "ai"] |
-| Custom brand | AI (DALL-E 3) | ["ai"] |
-| Quote illustration | Search | ["search", "icon"] |
+| Slide Content | Recommended Strategy | fallback_chain | Why |
+|---------------|---------------------|----------------|-----|
+| Flow / process / architecture | **diagram** (Agent-generated nodes) | ["diagram", "svg", "icon"] | Agent designs layout, Python renders SVG |
+| Comparison / relationships | **diagram** | ["diagram", "svg"] | Node graph > text for relationships |
+| Data / statistics trend | **svg** (Agent-generated inline) | ["svg", "icon"] | Simple trend lines, bars |
+| Charts | canvas (Chart.js) | ["canvas", "diagram"] | Interactive Chart.js charts |
+| Decorative / card icons | icon (Lucide CDN) | ["icon", "svg"] | Simple icon decoration |
+| Scene / atmosphere photos | **pexels** → pixabay → unsplash | ["pexels", "pixabay", "unsplash"] | Pexels: 200/hr, no attribution; Pixabay: 100/min; Unsplash: 50/hr, needs attribution |
+| Quote illustration | pexels → pixabay → unsplash | ["pexels", "pixabay", "unsplash", "icon"] | Mood photo for quote slides |
+| Custom brand (last resort) | AI (DALL-E 3) | ["ai"] | ~$0.04/image, only when all else fails |
 
 ### Level Details
 
-**Level 1 — SVG Inline**
-- Claude generates SVG during Agent 4, embedded in `image_request.svg_code`
+**Level 0 — Claude AI SVG Generation**
+- Agent calls Anthropic API (if key available) to generate creative aurora-borealis SVG diagrams
+- System prompt includes full design system (colors, typography, z-order rules)
+- Fallback for when diagram_nodes aren't provided but creative SVG is needed
+- Cost: ~$0.01/request
+
+**Level 1 — Diagram (Agent-generated, no API)**
+- Agent provides `diagram_nodes` + `diagram_edges` in image_request
+- Python `_generate_diagram_svg()` renders: grid bg → edges → opaque mask → node rect → text
+- 6 semantic node types: primary, accent, cyan, success, warning, muted
+- Cost: free
+
+**Level 2 — SVG Inline**
+- Agent generates SVG during Agent 4, embedded in `image_request.svg_code`
 - Python orchestrator injects CSS variables (replaces hardcoded hex colors)
 - viewBox="0 0 400 240", use only polyline/rect/circle/path
 - Cost: free
 
-**Level 2 — HTML Canvas / Chart.js**
+**Level 3 — HTML Canvas / Chart.js**
 - For chart slides where chart_data is available
 - Rendered as inline HTML+JS, Playwright captures it for PPTX layer
 - Cost: free
 
-**Level 3 — Icon CDN (Lucide)**
+**Level 4 — Icon CDN (Lucide)**
 - `icon_name` maps to `https://cdn.jsdelivr.net/npm/lucide-static@latest/icons/{name}.svg`
 - Emoji fallback if CDN unreachable
 - Cost: free
 
-**Level 4 — Image Search (Unsplash)**
-- Requires `UNSPLASH_KEY` in `.env.json`
+**Level 5a — Pexels Image Search**
+- Requires `pexels` key in `.env.json`
 - `search_query` or `description` as search terms
-- Returns `regular` size URL + photographer credit
-- Cost: free tier (50 req/hour)
+- Returns `src.landscape` (1200×627, perfect for slide backgrounds)
+- No attribution required
+- Rate limit: 200 req/hour, 20,000 req/month
+- Cost: free
 
-**Level 5 — AI Generation (DALL-E 3)**
-- Requires `OPENAI_KEY` in `.env.json`
+**Level 5b — Pixabay Image Search**
+- Requires `pixabay` key in `.env.json`
+- Searches with `orientation=horizontal`, `min_width=1280`
+- **Must download to cache** (hotlinking not allowed by Pixabay ToS)
+- No attribution required
+- Rate limit: 100 req/60sec, must cache 24 hours
+- Cost: free
+
+**Level 5c — Unsplash Image Search**
+- Requires `unsplash` key in `.env.json`
+- `search_query` or `description` as search terms
+- Returns `urls.regular` image URL
+- **Attribution required**: "Photo by [Name] on Unsplash"
+- Rate limit: 50 req/hour (demo), 5,000 req/hour (production approval)
+- Cost: free tier
+
+**Level 6 — AI Generation (DALL-E 3)**
+- Requires `openai` key in `.env.json`
 - `ai_prompt` appended with `image_style_fingerprint` from style_constraints
 - Size: 1792×1024 (wide format)
 - Cost: ~$0.04/image

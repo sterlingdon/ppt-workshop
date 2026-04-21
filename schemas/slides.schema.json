@@ -15,16 +15,55 @@
         "required": ["description", "fallback_chain"],
         "properties": {
           "description": { "type": "string" },
-          "preferred_strategy": { "type": "string", "enum": ["svg", "canvas", "icon", "search", "ai"] },
+          "preferred_strategy": {
+            "type": "string",
+            "enum": ["diagram", "claude", "svg", "canvas", "icon", "pexels", "pixabay", "search", "ai"]
+          },
           "fallback_chain": {
             "type": "array",
-            "items": { "type": "string", "enum": ["svg", "canvas", "icon", "search", "ai"] },
+            "items": {
+              "type": "string",
+              "enum": ["diagram", "claude", "svg", "canvas", "icon", "pexels", "pixabay", "search", "ai"]
+            },
             "minItems": 1
           },
           "svg_code": { "type": "string" },
           "icon_name": { "type": "string" },
           "search_query": { "type": "string" },
-          "ai_prompt": { "type": "string" }
+          "ai_prompt": { "type": "string" },
+          "diagram_width": { "type": "integer", "default": 900 },
+          "diagram_height": { "type": "integer", "default": 420 },
+          "diagram_nodes": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["id", "label", "x", "y"],
+              "properties": {
+                "id": { "type": "string" },
+                "label": { "type": "string" },
+                "sublabel": { "type": "string" },
+                "type": { "type": "string", "enum": ["primary", "accent", "cyan", "success", "warning", "muted"] },
+                "x": { "type": "integer" },
+                "y": { "type": "integer" },
+                "w": { "type": "integer", "default": 140 },
+                "h": { "type": "integer", "default": 52 }
+              }
+            }
+          },
+          "diagram_edges": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["from", "to"],
+              "properties": {
+                "from": { "type": "string" },
+                "to": { "type": "string" },
+                "label": { "type": "string" },
+                "accent": { "type": "boolean", "default": false },
+                "dashed": { "type": "boolean", "default": false }
+              }
+            }
+          }
         }
       }
     }

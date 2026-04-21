@@ -5,3 +5,4 @@ __pycache__/
 *.env
 image_cache/
 .superpowers/
+.env.json

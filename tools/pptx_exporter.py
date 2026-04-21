@@ -2,6 +2,7 @@
 from __future__ import annotations
 import asyncio
 import json
+import re
 from pathlib import Path
 from typing import Optional
 
@@ -10,6 +11,104 @@ from pptx.util import Inches, Pt, Emu
 from pptx.enum.text import PP_ALIGN
 from pptx.dml.color import RGBColor
 from pptx.enum.chart import XL_CHART_TYPE
+
+
+class ContentImageRenderer:
+    """将 resolved_image (SVG/Canvas/URL) 渲染成 PNG 文件，供 PPTX 嵌入使用"""
+
+    def __init__(self, themes_dir: str = "themes"):
+        self.themes_dir = Path(themes_dir)
+
+    async def render_all(self, slides: list[dict], theme_name: str, output_dir: str) -> list[dict]:
+        output_dir = Path(output_dir)
+        output_dir.mkdir(parents=True, exist_ok=True)
+        theme_css = self._load_theme_css(theme_name)
+
+        from playwright.async_api import async_playwright
+        async with async_playwright() as p:
+            browser = await p.chromium.launch()
+            page = await browser.new_page()
+            for i, slide in enumerate(slides):
+                resolved = slide.get("resolved_image", "")
+                if not resolved:
+                    continue
+                out_path = output_dir / f"content_slide_{i}.png"
+                img_type = self._detect_image_type(resolved)
+                try:
+                    ok = False
+                    if img_type == "svg":
+                        ok = await self._render_svg_to_png(page, resolved, theme_css, out_path)
+                    elif img_type == "canvas":
+                        ok = await self._render_canvas_to_png(page, resolved, theme_css, out_path)
+                    elif img_type == "url":
+                        ok = await self._download_url(resolved, out_path)
+                    if ok and out_path.exists():
+                        slide["resolved_image_path"] = str(out_path)
+                        print(f"  ✓ slide {i} ({slide.get('type')}) → {out_path.name}")
+                except Exception as e:
+                    print(f"  ⚠ slide {i} image failed: {e}")
+            await browser.close()
+        return slides
+
+    def _detect_image_type(self, data: str) -> str:
+        if "<canvas" in data and "<script" in data:
+            return "canvas"
+        if "<svg" in data:
+            return "svg"
+        if data.strip().startswith("https://"):
+            return "url"
+        return "unknown"
+
+    def _load_theme_css(self, theme_name: str) -> str:
+        for name in [theme_name, "_base"]:
+            p = self.themes_dir / f"{name}.css"
+            if p.exists():
+                css = p.read_text(encoding="utf-8")
+                return re.sub(r"@import\s+url\([^)]+\);?\s*\n?", "", css)
+        return (":root{--color-bg:#050818;--color-primary:#6366f1;"
+                "--color-secondary:#38bdf8;--color-text:#f1f5f9;--color-text-muted:#94a3b8;}")
+
+    async def _render_svg_to_png(self, page, svg_data: str, theme_css: str, out_path: Path) -> bool:
+        svg = re.sub(r'(<svg[^>]*)\s+width="\d+"', r'\1', svg_data)
+        svg = re.sub(r'(<svg[^>]*)\s+height="\d+"', r'\1', svg)
+        html = f"""<!DOCTYPE html><html><head><style>
+{theme_css}
+*{{margin:0;padding:0;box-sizing:border-box}}
+body{{width:800px;height:480px;overflow:hidden;background:var(--color-bg,#050818);
+  display:flex;align-items:center;justify-content:center;padding:2rem}}
+svg{{width:100%;height:auto;max-height:100%;display:block}}
+</style></head><body>{svg}</body></html>"""
+        await page.set_viewport_size({"width": 800, "height": 480})
+        await page.set_content(html, wait_until="domcontentloaded")
+        await page.screenshot(path=str(out_path))
+        return True
+
+    async def _render_canvas_to_png(self, page, canvas_html: str, theme_css: str, out_path: Path) -> bool:
+        # Patch Chart.js options: disable responsive + animation so chart fills the viewport
+        patched = canvas_html.replace(
+            "responsive: true",
+            "responsive: false, animation: { duration: 0 }"
+        )
+        html = f"""<!DOCTYPE html><html><head><style>
+{theme_css}
+*{{margin:0;padding:0;box-sizing:border-box}}
+body{{width:800px;height:450px;overflow:hidden;background:var(--color-bg,#050818);
+  display:flex;align-items:center;justify-content:center;padding:1rem}}
+canvas{{width:760px!important;height:420px!important}}
+</style></head><body>{patched}</body></html>"""
+        await page.set_viewport_size({"width": 800, "height": 450})
+        await page.set_content(html, wait_until="networkidle")
+        await page.wait_for_timeout(800)
+        await page.screenshot(path=str(out_path))
+        return True
+
+    async def _download_url(self, url: str, out_path: Path) -> bool:
+        import httpx
+        async with httpx.AsyncClient(timeout=15.0, follow_redirects=True) as client:
+            resp = await client.get(url)
+            resp.raise_for_status()
+        out_path.write_bytes(resp.content)
+        return True
 
 
 class HybridPPTXBuilder:
@@ -56,6 +155,18 @@ class HybridPPTXBuilder:
         fill = bg.fill
         fill.solid()
         fill.fore_color.rgb = self.bg_color
+
+    def _add_picture_fit(self, slide, img_path: str, left, top, max_w, max_h):
+        """Add picture scaled proportionally to fit within max_w × max_h, centered in that box."""
+        from PIL import Image as PILImage
+        with PILImage.open(img_path) as im:
+            iw, ih = im.size
+        scale = min(max_w / iw, max_h / ih)
+        w = int(iw * scale)
+        h = int(ih * scale)
+        cx = left + (max_w - w) // 2
+        cy = top + (max_h - h) // 2
+        slide.shapes.add_picture(img_path, cx, cy, w, h)
 
     def _render_slide_content(self, slide, data: dict):
         dispatch = {
@@ -117,16 +228,22 @@ class HybridPPTXBuilder:
                 font_size=Pt(18), color=self.muted_color)
 
     def _render_bullet_list(self, slide, data: dict):
+        img_path = data.get("resolved_image_path")
+        has_img = bool(img_path and Path(img_path).exists())
+        text_w = Inches(8) if has_img else Inches(14)
+
         self._add_text_box(slide, data.get("heading", ""),
-            left=Inches(0.8), top=Inches(0.5), width=Inches(14), height=Inches(1.2),
+            left=Inches(0.8), top=Inches(0.5), width=text_w, height=Inches(1.2),
             font_size=Pt(36), font_bold=True, color=self.text_color,
             font_name=self.display_font)
         bullets = data.get("content", {}).get("bullets", [])[:5]
         for i, bullet in enumerate(bullets):
             y = Inches(1.9) + i * Inches(1.1)
             self._add_text_box(slide, f"●  {bullet}",
-                left=Inches(1), top=y, width=Inches(12), height=Inches(0.9),
+                left=Inches(1), top=y, width=text_w - Inches(0.2), height=Inches(0.9),
                 font_size=Pt(20), color=self.muted_color)
+        if has_img:
+            self._add_picture_fit(slide, img_path, Inches(9.2), Inches(1.8), Inches(5.8), Inches(5.5))
 
     def _render_stats(self, slide, data: dict):
         self._add_text_box(slide, data.get("heading", ""),
@@ -137,14 +254,17 @@ class HybridPPTXBuilder:
         w = Inches(14) / max(len(stats), 1)
         for i, stat in enumerate(stats):
             x = Inches(1) + i * w
-            self._add_shape_card(slide, x, Inches(2), w - Inches(0.2), Inches(4.5))
+            self._add_shape_card(slide, x, Inches(2), w - Inches(0.2), Inches(2.2))
             self._add_text_box(slide, stat.get("value", ""),
-                left=x + Inches(0.1), top=Inches(2.8), width=w - Inches(0.3), height=Inches(1.5),
+                left=x + Inches(0.1), top=Inches(2.3), width=w - Inches(0.3), height=Inches(1.0),
                 font_size=Pt(48), font_bold=True, color=self.primary,
                 align=PP_ALIGN.CENTER, font_name=self.display_font)
             self._add_text_box(slide, stat.get("label", ""),
-                left=x + Inches(0.1), top=Inches(4.4), width=w - Inches(0.3), height=Inches(0.6),
+                left=x + Inches(0.1), top=Inches(3.4), width=w - Inches(0.3), height=Inches(0.6),
                 font_size=Pt(16), color=self.muted_color, align=PP_ALIGN.CENTER)
+        img_path = data.get("resolved_image_path")
+        if img_path and Path(img_path).exists():
+            self._add_picture_fit(slide, img_path, Inches(4), Inches(4.5), Inches(8), Inches(4))
 
     def _render_timeline(self, slide, data: dict):
         self._add_text_box(slide, data.get("heading", ""),
@@ -197,13 +317,16 @@ class HybridPPTXBuilder:
             font_name=self.display_font)
         img_path = data.get("resolved_image_path")
         if img_path and Path(img_path).exists():
-            slide.shapes.add_picture(img_path, Inches(1), Inches(1.8), Inches(14), Inches(6))
+            self._add_picture_fit(slide, img_path, Inches(1), Inches(1.8), Inches(14), Inches(6.5))
         else:
             self._add_text_box(slide, "（图表内容见 HTML 版本）",
                 left=Inches(1), top=Inches(3), width=Inches(14), height=Inches(1),
                 font_size=Pt(18), color=self.muted_color, align=PP_ALIGN.CENTER)
 
     def _render_image_hero(self, slide, data: dict):
+        img_path = data.get("resolved_image_path")
+        if img_path and Path(img_path).exists():
+            self._add_picture_fit(slide, img_path, 0, 0, self.W, self.H)
         self._add_text_box(slide, data.get("heading", ""),
             left=Inches(1), top=Inches(5.5), width=Inches(14), height=Inches(1.5),
             font_size=Pt(42), font_bold=True, color=self.text_color,
@@ -322,7 +445,6 @@ class HybridPPTXBuilder:
     def _add_shape_card(self, slide, left, top, width, height):
         shape = slide.shapes.add_shape(1, left, top, width, height)
         shape.fill.solid()
-        # Parse bg_color hex to int components
         bg_hex = self.theme.get("bg_color", "0f172a")
         r = int(bg_hex[0:2], 16)
         g = int(bg_hex[2:4], 16)
@@ -352,12 +474,16 @@ class BackgroundScreenshotter:
             slide_count = await page.locator('.slide').count()
             for i in range(slide_count):
                 await page.evaluate(f"""
-                    document.querySelectorAll('.slide').forEach((s, idx) => {{
+                    const allSlides = document.querySelectorAll('.slide');
+                    allSlides.forEach((s, idx) => {{
                         s.style.opacity = idx === {i} ? '1' : '0';
                     }});
-                    document.querySelectorAll('.slide.active > *:not(.blob-container)').forEach(el => {{
-                        el.style.visibility = 'hidden';
-                    }});
+                    const currentSlide = allSlides[{i}];
+                    if (currentSlide) {{
+                        currentSlide.querySelectorAll(':scope > *:not(.blob-container)').forEach(el => {{
+                            el.style.visibility = 'hidden';
+                        }});
+                    }}
                 """)
                 await page.wait_for_timeout(500)
                 bg_path = str(output_dir / f"bg_slide_{i}.png")
@@ -377,16 +503,32 @@ if __name__ == "__main__":
 
     slides = json.loads(Path(slides_path).read_text(encoding="utf-8"))
 
-    theme_config = {"name": "aurora-borealis", "primary_color": "6366f1",
+    # Derive theme name from outline.json in the same directory
+    outline_path = Path(slides_path).parent / "outline.json"
+    theme_name = "aurora-borealis"
+    if outline_path.exists():
+        theme_name = json.loads(outline_path.read_text(encoding="utf-8")).get("theme", theme_name)
+
+    theme_config = {"name": theme_name, "primary_color": "6366f1",
                     "text_color": "f1f5f9", "bg_color": "050818"}
     if theme_path:
         theme_config.update(json.loads(Path(theme_path).read_text()))
 
-    screenshotter = BackgroundScreenshotter()
+    themes_dir = str(Path(__file__).parent.parent / "themes")
+    content_dir = str(Path(output_path).parent / "content_images")
     bg_dir = str(Path(output_path).parent / "bg_frames")
-    bg_images = asyncio.run(screenshotter.screenshot_all_backgrounds(html_path, bg_dir))
-    print(f"✓ 截图 {len(bg_images)} 张背景")
+
+    async def _run():
+        content_renderer = ContentImageRenderer(themes_dir=themes_dir)
+        enriched = await content_renderer.render_all(slides, theme_name, content_dir)
+        img_count = sum(1 for s in enriched if s.get("resolved_image_path"))
+        print(f"✓ 内容图片转换完成 → {img_count} 张")
+        bg_images = await BackgroundScreenshotter().screenshot_all_backgrounds(html_path, bg_dir)
+        print(f"✓ 截图 {len(bg_images)} 张背景")
+        return enriched, bg_images
+
+    enriched_slides, bg_images = asyncio.run(_run())
 
     builder = HybridPPTXBuilder(theme_config)
-    result = builder.build(slides, bg_images=bg_images, output_path=output_path)
+    result = builder.build(enriched_slides, bg_images=bg_images, output_path=output_path)
     print(f"✓ PPTX 导出完成 → {result}")

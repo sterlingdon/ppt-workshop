@@ -79,18 +79,25 @@ class HTMLRenderer:
     @slide_type("title")
     def _render_title(self, slide: dict, style: dict) -> str:
         heading_class = "heading-gradient" if style.get("heading_emphasis") == "gradient" else ""
-        image_html = f'<img src="{slide["resolved_image"]}" class="title-bg-img" alt="">' if slide.get("resolved_image") else ""
+        img_data = slide.get("resolved_image", "")
+        if img_data.strip().startswith("<"):
+            # Inline SVG — embed directly, not as <img src>
+            image_html = f'<div style="margin-bottom:1.5rem; max-height:200px; display:flex; justify-content:center; opacity:0.6;">{img_data}</div>'
+        elif img_data:
+            image_html = f'<img src="{img_data}" class="title-bg-img" style="max-height:200px; opacity:0.6;" alt="">'
+        else:
+            image_html = ""
         return f"""
 <div class="title-slide" style="text-align:center; padding: 4rem;">
-  {image_html}
-  <h1 class="title-heading {heading_class}" style="
-    font-family: var(--font-display);
-    font-size: var(--font-size-display);
-    font-weight: var(--font-weight-display);
-    margin-bottom: 1.5rem;
-    line-height: 1.1;
-  ">{slide['heading']}</h1>
-  {"<p class='subtitle' style='font-size: var(--font-size-h2); color: var(--color-text-muted); max-width: 700px; margin: 0 auto;'>" + slide.get('subheading','') + "</p>" if slide.get('subheading') else ""}
+    {image_html}
+    <h1 class="title-heading {heading_class}" style="
+        font-family: var(--font-display);
+        font-size: var(--font-size-display);
+        font-weight: var(--font-weight-display);
+        margin-bottom: 1.5rem;
+        line-height: 1.1;
+    ">{slide['heading']}</h1>
+    {"<p class='subtitle' style='font-size: var(--font-size-h2); color: var(--color-text-muted); max-width: 700px; margin: 0 auto;'>" + slide.get('subheading','') + "</p>" if slide.get('subheading') else ""}
 </div>"""
 
     @slide_type("section-divider")
@@ -126,7 +133,8 @@ class HTMLRenderer:
 
     @slide_type("bullet-list")
     def _render_bullet_list(self, slide: dict, style: dict) -> str:
-        bullets = slide.get("content", {}).get("bullets", [])[:5]  # max 5
+        content = slide.get("content", {})
+        bullets = content.get("bullets", content.get("items", []))[:5]
         bullet_style = style.get("bullet_style", "dot")
         icons = {"dot": "●", "check": "✓", "dash": "—"}
         icon = icons.get(bullet_style, "●")
@@ -136,7 +144,13 @@ class HTMLRenderer:
             f'<span>{b}</span></li>'
             for b in bullets
         ])
-        image_html = f'<div style="width:280px; flex-shrink:0;"><img src="{slide["resolved_image"]}" style="width:100%; border-radius:var(--card-radius);" alt=""></div>' if slide.get("resolved_image") else ""
+        img_data = slide.get("resolved_image", "")
+        if img_data.strip().startswith("<"):
+            image_html = f'<div style="width:280px; flex-shrink:0; display:flex; align-items:center; justify-content:center;">{img_data}</div>'
+        elif img_data:
+            image_html = f'<div style="width:280px; flex-shrink:0;"><img src="{img_data}" style="width:100%; border-radius:var(--card-radius);" alt=""></div>'
+        else:
+            image_html = ""
         return f"""
 <div style="display:flex; gap:3rem; align-items:center; height:100%;">
   <div style="flex:1;">
@@ -160,10 +174,17 @@ class HTMLRenderer:
             f'</div>'
             for s in stats
         ])
+        img_data = slide.get("resolved_image", "")
+        viz_html = ""
+        if img_data.strip().startswith("<"):
+            viz_html = f'<div style="margin-top:1.5rem; opacity:0.85;">{img_data}</div>'
+        elif img_data:
+            viz_html = f'<img src="{img_data}" style="margin-top:1.5rem; max-height:160px; border-radius:var(--card-radius);" alt="">'
         return f"""
 <div>
   <h2 style="font-family:var(--font-display); font-size:var(--font-size-h1); font-weight:var(--font-weight-heading); margin-bottom:2rem;">{slide['heading']}</h2>
   <div style="display:flex; gap:1.5rem;">{stats_html}</div>
+  {viz_html}
 </div>"""
 
     @slide_type("quote-callout")
@@ -270,13 +291,21 @@ class HTMLRenderer:
                 items = "".join([f'<li style="padding:0.4rem 0; color:var(--color-text-muted);">● {b}</li>' for b in col.get("items",[])])
                 return f'<ul style="list-style:none; padding:0;">{items}</ul>'
             return f'<p style="color:var(--color-text-muted); line-height:1.7;">{col.get("text","")}</p>'
+        img_data = slide.get("resolved_image", "")
+        if img_data.strip().startswith("<"):
+            diagram_html = f'<div style="margin-top:1.5rem; opacity:0.85;">{img_data}</div>'
+        elif img_data:
+            diagram_html = f'<img src="{img_data}" style="margin-top:1.5rem; max-height:180px; border-radius:var(--card-radius);" alt="">'
+        else:
+            diagram_html = ""
         return f"""
 <div>
-  <h2 style="font-family:var(--font-display); font-size:var(--font-size-h1); font-weight:var(--font-weight-heading); margin-bottom:2rem;">{slide['heading']}</h2>
-  <div style="display:grid; grid-template-columns:1fr 1fr; gap:3rem;">
-    <div>{"<h3 style='font-weight:600; margin-bottom:1rem;'>" + left.get('title','') + "</h3>" if left.get('title') else ""}{col_html(left)}</div>
-    <div>{"<h3 style='font-weight:600; margin-bottom:1rem;'>" + right.get('title','') + "</h3>" if right.get('title') else ""}{col_html(right)}</div>
-  </div>
+    <h2 style="font-family:var(--font-display); font-size:var(--font-size-h1); font-weight:var(--font-weight-heading); margin-bottom:2rem;">{slide['heading']}</h2>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:3rem;">
+        <div>{"<h3 style='font-weight:600; margin-bottom:1rem;'>" + left.get('title','') + "</h3>" if left.get('title') else ""}{col_html(left)}</div>
+        <div>{"<h3 style='font-weight:600; margin-bottom:1rem;'>" + right.get('title','') + "</h3>" if right.get('title') else ""}{col_html(right)}</div>
+    </div>
+    {diagram_html}
 </div>"""
 
     @slide_type("fact-list")
