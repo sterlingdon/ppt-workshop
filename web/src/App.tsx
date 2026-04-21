@@ -32,6 +32,8 @@ function App() {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [slides.length, isExtract])
 
+  const viewportScale = Math.min(window.innerWidth / 1920, window.innerHeight / 1080) * 0.95
+
   // Extract Mode: Render all slides strictly unscaled and stacked for Playwright
   if (isExtract) {
     return (
@@ -56,8 +58,8 @@ function App() {
           style={{ 
             width: '1920px', 
             height: '1080px', 
-            transform: `scale(Math.min(window.innerWidth / 1920, window.innerHeight / 1080) * 0.95) scale(${Math.min(window.innerWidth / 1920, window.innerHeight / 1080) * 0.95})`, 
-            zoom: Math.min(window.innerWidth / 1920, window.innerHeight / 1080) * 0.95 
+            transform: `scale(${viewportScale})`,
+            transformOrigin: 'center',
           }}
         >
            {createElement(slides[currentIdx])}

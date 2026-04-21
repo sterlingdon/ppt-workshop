@@ -6,3 +6,4 @@ __pycache__/
 image_cache/
 .superpowers/
 .env.json
+web/src/generated/slides/

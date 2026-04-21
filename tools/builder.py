@@ -53,7 +53,8 @@ async def extract_layout_and_assets(web_dir="web", workspace=None, port=5173):
                 # 滚动到幻灯片位置确保视口可见
                 await slide_loc.scroll_into_view_if_needed()
                 slide_box = await slide_loc.bounding_box()
-                if not slide_box: continue
+                if not slide_box:
+                    continue
 
                 slide_info = {
                     "index": slide_index,
@@ -67,7 +68,8 @@ async def extract_layout_and_assets(web_dir="web", workspace=None, port=5173):
                 for txt_index, txt_loc in enumerate(text_locators):
                     # 获取计算样式和坐标
                     box = await txt_loc.bounding_box()
-                    if not box: continue
+                    if not box:
+                        continue
 
                     # 计算相对于当前 Slide 容器的坐标，彻底无视视口滚动或边距偏差
                     rel_box = {
@@ -108,7 +110,8 @@ async def extract_layout_and_assets(web_dir="web", workspace=None, port=5173):
                 bg_locators = await slide_loc.locator("[data-ppt-bg]").all()
                 for bg_index, bg_loc in enumerate(bg_locators):
                     box = await bg_loc.bounding_box()
-                    if not box: continue
+                    if not box:
+                        continue
 
                     rel_box = {
                         "x": box["x"] - slide_box["x"],
@@ -139,6 +142,11 @@ async def extract_layout_and_assets(web_dir="web", workspace=None, port=5173):
 
     finally:
         vite_process.terminate()
+        try:
+            vite_process.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            vite_process.kill()
+            vite_process.wait(timeout=5)
 
 
 def parse_args():

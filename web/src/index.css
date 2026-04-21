@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@source "./generated/slides";
 
 /* Define base sizes and ppt standards here */
 :root {
