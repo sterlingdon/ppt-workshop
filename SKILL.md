@@ -178,139 +178,37 @@ print(f'✓ outline.json 验证通过，共 {len(data[\"slides\"])} 张幻灯片
 
 ---
 
-## Agent 4 · 幻灯片数据构建
+## Agent 4 · React 组件级构建 (Code-Driven)
 
-**目标**：为每张幻灯片填充完整数据，输出 `output/slides.json`（必须符合 `schemas/slides.schema.json`）
+**目标**：大模型充当前端工程师，直接编写能够呈现惊艳视觉的 React 组件代码，存入 `web/src/slides/`。
 
-读取 `output/outline.json` 和 `output/analysis.json`，逐张构建幻灯片数据。
+读取 `output/outline.json` 和 `output/analysis.json`，为每一张幻灯片编写一个对应的组件文件，例如 `Slide_1.tsx`。你可以编写一个 `index.tsx` 来统一导出这些幻灯片从而供 React 渲染器遍历。
 
-**每种幻灯片类型的 `content` 结构**：
+**编程规范**：
+1. **彻底放飞排版**：不要拘泥于死板的布局！使用 Tailwind CSS 尽情施展排版、渐变、光影、悬浮毛玻璃、卡片交错等高级现代视觉效果。你可以混用各种布局（比如 Bento 便当盒、左大侧图边框、悬浮重叠等）。
+2. **必需的组件属性（极其重要）**：
+   - 必须在代表单张幻灯片的**根容器**上打上 `data-ppt-slide={index}`。同时确保该容器有一致的标准屏幕比例宽高（例如 `w-[1920px] h-[1080px]` 或纵横比约束）。
+   - 遇到任何**独立视觉装饰模块**（特别是带高级光影特效、毛玻璃背景、多层阴影、特殊边框的卡片或形状区块），必须在其 HTML 标签上附带 `data-ppt-bg` 属性。系统提取器会精准对该区块进行“高保真局部截屏”，以保留毛玻璃反射效果，再当做贴片拼接到 PPT 中。
+   - 遇到任何需要保留在最终 PPT 里可被用户正常高亮、修改调整的原生**文本元素**（标题、正文文本、数字摘要等），必须在它的标签上附带 `data-ppt-text` 属性，并且通过 `font-['Inter']` 等类库明确标注其字体，只有在这个标签里的文字才会原汁原味生成原生文本框。对于文本元素，千万不要使用 `data-ppt-bg`。
+3. 如果你在组件里手绘内联 SVG 图表（你具备此能力！），你应该在此 SVG 外包一个带有 `data-ppt-bg` 的容器，以便 PPT 引擎将其直接截取为高清图块放置。
 
-`title` / `conclusion`：
-
-```json
-{
-  "type": "title",
-  "heading": "标题",
-  "subheading": "副标题（可选）",
-  "content": {}
-}
-```
-
-`bullet-list`：
-
-```json
-{
-  "content": {
-    "bullets": ["最多5条", "每条不超过20字", "主动语态", "包含关键词"]
-  }
-}
-```
-
-`stats-callout`：
-
-```json
-{
-  "content": {
-    "stats": [{ "value": "85%", "label": "增长率", "context": "同比2023年" }]
-  }
-}
-```
-
-`timeline`：
-
-```json
-{
-  "content": {
-    "items": [{ "date": "2020年", "event": "重要节点描述，15字以内" }]
-  }
-}
-```
-
-`card-grid-2` / `card-grid-3`：
-
-```json
-{
-  "content": {
-    "cards": [
-      {
-        "title": "标题",
-        "body": "描述，30字以内",
-        "icon": "lucide图标名（可选）"
-      }
-    ]
-  }
-}
-```
-
-`quote-callout`：
-
-```json
-{
-  "content": {
-    "quote": { "text": "引用原文", "author": "姓名", "role": "职位" }
-  }
-}
-```
-
-`comparison`：
-
-```json
-{
-  "content": {
-    "columns": [
-      { "title": "方案A", "items": ["特点1", "特点2"], "positive": true }
-    ]
-  }
-}
-```
-
-`two-column`：
-
-```json
-{
-  "content": {
-    "left": { "title": "左侧标题", "type": "bullets", "items": ["..."] },
-    "right": { "title": "右侧标题", "type": "text", "text": "..." }
-  }
-}
-```
-
-`fact-list`：
-
-```json
-{ "content": { "facts": [{ "emoji": "🚀", "title": "标题", "body": "描述" }] } }
-```
-
-`exec-summary`：
-
-```json
-{ "content": { "points": ["要点1", "要点2", "要点3"] } }
-```
-
-`section-divider` / `agenda`：
-
-```json
-{ "content": { "items": ["章节1", "章节2"], "section_number": "01" } }
-```
-
-`chart`：
-
-```json
-{
-  "content": {
-    "chart": {
-      "type": "bar",
-      "labels": ["Q1", "Q2", "Q3"],
-      "datasets": [
-        {
-          "label": "收入",
-          "data": [100, 150, 200],
-          "backgroundColor": "rgba(99,102,241,0.7)"
-        }
-      ]
-    }
-  }
+**示例代码（`web/src/slides/Slide_1.tsx`）**：
+```tsx
+export default function Slide_1() {
+  return (
+    // 幻灯片满屏根节点
+    <div className="w-[1920px] h-[1080px] bg-slate-900..." data-ppt-slide="1">
+      
+      {/* PPT 引擎会精确截取这个毛玻璃卡片成为局部高保真图片 */}
+      <div className="backdrop-blur-2xl ring-1 ring-white/20..." data-ppt-bg="true">
+      
+         {/* PPT 引擎会把这里原封不动还原为原生字体文本框，不会变糊 */}
+         <h1 className="text-6xl font-black font-sans text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600" data-ppt-text="true">
+           山寨季的黎明
+         </h1>
+      </div>
+    </div>
+  )
 }
 ```
 
@@ -440,41 +338,34 @@ python tools/image_orchestrator.py output/slides.json output/slides_with_images.
 
 ---
 
-## Agent 6 · HTML 渲染（Python工具）
+## Agent 6 · React 引擎无头截获（自动运行并获取组件局部切片坐标）
+
+一键启动 Vite 服务，并由 Python 的 Playwright 发起并执行“原生元素双轨脱水”动作（背景元素高保真快照，文本元素节点坐标记录）。
 
 ```bash
-python -c "
-import json
-from tools.html_renderer import HTMLRenderer
-data = json.load(open('output/slides_with_images.json'))
-renderer = HTMLRenderer(themes_dir='themes', templates_dir='templates')
-html = renderer.render(data)
-open('output/presentation.html', 'w').write(html)
-print('✓ HTML 渲染完成 → output/presentation.html')
-"
+python tools/builder.py
 ```
+该工具将：
+1. 自动调用子进程在后台运行 `npm run dev` 唤醒 Web 端。
+2. Playwright 并发请求所有打上 `data-ppt-slide` 的页面树。
+3. 对带 `data-ppt-bg` 属性的毛玻璃卡片和绘图进行切块原样保存。
+4. 获取带 `data-ppt-text` 的文本内容和样式、物理极值坐标。
 
-打开 `output/presentation.html` 在浏览器中预览，确认视觉效果。
+输出结果存至 `output/layout_manifest.json` 与 `output/pro_assets/`。
 
 ---
 
-## Agent 7 · PPTX 导出（Python工具）
+## Agent 7 · 终极 PPTX 原生缝合 (Python工具)
 
-读取主题 token（从 outline.json 的 theme 字段决定）：
+依据上一步提取出来的碎图与文字骨架表，反向生成真正的高颜值且拥有完美字体的可编辑 PPT。
 
 ```bash
-python tools/pptx_exporter.py \
-  output/slides_with_images.json \
-  output/presentation.html \
-  output/presentation_hybrid.pptx
+python tools/pptx_exporter.py output/layout_manifest.json output/presentation_pro.pptx
 ```
 
 **输出文件**：
 
-- `output/presentation.html` — 完整HTML版本（所有效果）
-- `output/presentation_hybrid.pptx` — Hybrid PPTX（~80%视觉还原，内容可编辑）
+- `output/presentation_pro.pptx` — 高颜值且完全分离好独立对象组件的终极 Hybrid PPTX
+- 运行在本地 `localhost:5173` 的完美前端组件展示站
 
-告知用户输出位置，并说明：
-
-- HTML版本在浏览器中用方向键翻页
-- PPTX版本可在 PowerPoint / Keynote 中编辑文字和数据
+向用户汇报成功，并告知它最终导出的文件去向！

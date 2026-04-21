@@ -1,0 +1,13 @@
+@import "tailwindcss";
+
+/* Define base sizes and ppt standards here */
+:root {
+  --slide-width: 1920px;
+  --slide-height: 1080px;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  overflow: hidden; /* Each slide will be positioned specifically */
+}
