@@ -1,51 +1,73 @@
 # Article-to-PPT Engineering Reference
 
-**Version:** 1.0  
-**Status:** Authoritative — replaces article_to_ppt_agent_architecture.md, multi_style_architecture.md, pptx_delivery_architecture.md, style_consistency_design.md
+**Version:** 1.1
+**Status:** Authoritative for the current React rendering pipeline
 
 ---
 
 ## 1. System Architecture
 
-### 7-Agent Pipeline
+### Current Pipeline
 
 ```
 INPUT (URL / 文本 / PDF)
     ↓
-[CLAUDE] Agent 1 · 文章提取       → output/article_text.md
+[PYTHON/AI] Agent 0 · 建立项目工作区 → output/projects/<project-id>/
     ↓
-[CLAUDE] Agent 2 · 内容分析       → output/analysis.json
+[CLAUDE] Agent 1 · 文章提取       → article_text.md
     ↓
-[CLAUDE] Agent 3 · 幻灯片规划     → output/outline.json
+[CLAUDE] Agent 2 · 内容分析       → analysis.json
     ↓
-[CLAUDE] Agent 4 · 幻灯片数据构建 → output/slides.json
+[CLAUDE] Agent 3 · 幻灯片规划     → outline.json
     ↓
-[PYTHON] Agent 5 · 图片编排       → output/slides_with_images.json
+[CLAUDE] Agent 4 · React组件构建  → web/src/slides/Slide_N.tsx
     ↓
-[PYTHON] Agent 6 · HTML渲染       → output/presentation.html
+[PYTHON] Agent 5 · 图片编排       → slides_with_images.json (optional/when needed)
     ↓
-[PYTHON] Agent 7 · PPTX导出       → output/presentation_hybrid.pptx
-                                    output/assets.zip
+[PYTHON] Agent 6 · React布局抽取   → layout_manifest.json + assets/
+    ↓
+[PYTHON] Agent 7 · PPTX导出       → presentation.pptx
 ```
 
-**Agent 1-4**: Claude executes — reasoning, extraction, structured JSON output.  
-**Agent 5-7**: Python scripts — mechanical image fetching, HTML rendering, PPTX assembly.
+**Agent 1-4**: Claude executes reasoning, structure, and React component generation.
+**Agent 5-7**: Python scripts handle asset fetching, Playwright extraction, and PPTX assembly.
 
 ### Data Flow
 
-Each agent reads from the previous checkpoint file and writes one output file to `output/`. If the output file already exists and is non-empty, the agent is skipped (checkpoint resume). Delete the file to force re-run.
+Each deck gets an isolated workspace under `output/projects/<project-id>/`. Each agent reads from the previous checkpoint file in that workspace and writes the next checkpoint. If an output file already exists and is non-empty, that step can be skipped. Delete a checkpoint to force re-run.
+
+### Project Workspace
+
+Created by `tools/presentation_workspace.py`.
+
+```
+output/projects/<project-id>/
+├── project.json
+├── article_text.md
+├── analysis.json
+├── outline.json
+├── slides.json
+├── slides_with_images.json
+├── layout_manifest.json
+├── presentation.pptx
+├── assets/
+└── slides/
+```
+
+The React source of the currently active deck still lives in `web/src/slides/` during this first restructuring phase. Runtime outputs, extracted screenshots, manifests, and final PPTX files must live in the project workspace.
 
 ### Responsibility Boundaries
 
 | Agent | Tool | Input | Output | Responsibility |
 |-------|------|-------|--------|----------------|
-| 1 | Claude | URL/text/PDF | article_text.md | Extract clean article text |
+| 0 | Python | deck title | project.json + dirs | Create isolated workspace |
+| 1 | Claude/Python | URL/text/PDF | article_text.md | Extract clean article text |
 | 2 | Claude | article_text.md | analysis.json | Domain, key points, statistics, quotes |
-| 3 | Claude | analysis.json | outline.json | Slide count, types, style_constraints |
-| 4 | Claude | outline.json + analysis.json | slides.json | Full content per slide + image_request |
+| 3 | Claude | analysis.json | outline.json | Slide count, style preset, slide plan |
+| 4 | Claude/React | outline.json + analysis.json | web/src/slides/* | Visual slide implementation |
 | 5 | Python | slides.json | slides_with_images.json | Resolve images via 5-level fallback |
-| 6 | Python | slides_with_images.json | presentation.html | Single-file HTML presentation |
-| 7 | Python | slides_with_images.json + HTML | presentation_hybrid.pptx | Hybrid PPTX (bg screenshot + native content) |
+| 6 | Python/Playwright | React app | layout_manifest.json + assets/ | Extract backgrounds/components/text boxes |
+| 7 | Python | layout_manifest.json | presentation.pptx | Stitch PPTX from images + native text |
 
 ---
 
@@ -230,11 +252,47 @@ Images cached by MD5 key (chain + content descriptor) in `image_cache/`. Cache i
 
 ---
 
-## 5. Theme System
+## 5. Style System
 
-### CSS Variable Architecture
+### React Style Preset Registry
 
-`themes/_base.css` defines the complete variable interface. Theme files only override values — HTML and component CSS never reference theme-specific values directly.
+The active React renderer uses `web/src/styles/presets.ts` as the source of reusable deck styles. This registry is meant for both code and AI instructions: it includes design tokens, layout rules, component recipes, and things to avoid.
+
+Current presets:
+
+| Preset | Style | Primary Use |
+|--------|-------|-------------|
+| aurora-borealis | Dark technical, cyan-purple light, glass panels | technology/AI/cybersecurity |
+| bold-signal | High contrast black/orange business deck | startup/business/finance |
+| editorial-ink | Light editorial, print hierarchy, restrained red accent | education/culture/content |
+
+React slide components should call:
+
+```tsx
+import { getDeckStylePreset, styleVars } from '../styles'
+
+const preset = getDeckStylePreset('aurora-borealis')
+
+<div style={styleVars(preset)} className="bg-[var(--ppt-bg)] text-[var(--ppt-text)]">
+```
+
+Primary CSS variables exposed by `styleVars()`:
+
+- `--ppt-bg`
+- `--ppt-surface`
+- `--ppt-surface-strong`
+- `--ppt-primary`
+- `--ppt-secondary`
+- `--ppt-accent`
+- `--ppt-text`
+- `--ppt-muted`
+- `--ppt-border`
+- `--ppt-font-display`
+- `--ppt-font-body`
+
+### Legacy CSS Themes
+
+`themes/_base.css` and `themes/*.css` are retained for the older HTML renderer and for reference. They are no longer the primary visual mechanism for the React pipeline.
 
 Variable categories:
 - Color: `--color-bg`, `--color-surface`, `--color-primary`, `--color-secondary`, `--color-accent`, `--color-text`, `--color-text-muted`, `--color-text-subtle`, `--color-border`
@@ -263,54 +321,39 @@ Variable categories:
 | healthcare, education, culture | editorial-ink |
 | other | aurora-borealis |
 
-### Adding a New Theme
+### Adding a New Style Preset
 
-1. Create `themes/<theme-name>.css`
-2. Override any variables from `_base.css` (override only what changes)
-3. Add to `suggested_theme` enum in `schemas/analysis.schema.json`
-4. Add domain mapping to SKILL.md Agent 2 section
+1. Add a new entry to `web/src/styles/presets.ts`.
+2. Include tokens, layout rules, component recipes, and avoid-list.
+3. Add the id to `DeckStyleId`.
+4. Add the style to SKILL.md Agent 4 style preset guidance.
+5. Run `npm run build`.
 
 ---
 
 ## 6. Hybrid PPTX Architecture
 
-### Two-Layer Approach
+### Manifest-Based Approach
 
-**Layer 1 — Background (Playwright screenshot)**  
-Playwright opens `presentation.html`, iterates each slide, hides the text content layer, screenshots the background visuals (gradients, blobs, particles). Each screenshot saved as `bg_frames/bg_slide_N.png` (1280×720 PNG).
+`tools/builder.py` opens the React renderer at `?extract=1`, then extracts three kinds of objects:
 
-**Layer 2 — Content (python-pptx native)**  
-`HybridPPTXBuilder` adds slides using blank layout (16:9, 1280×720 equiv in EMU). For each slide:
-1. Insert background PNG as a picture shape, z-ordered to bottom
-2. Add native text boxes, shape cards using python-pptx API
+- full-slide background PNG after hiding `data-ppt-text`
+- component PNGs for each `data-ppt-bg`
+- native text boxes for each `data-ppt-text`
 
-### Content Degradation Table
+It writes `layout_manifest.json`. `tools/pptx_exporter.py` consumes that manifest and creates PPTX slides by adding:
 
-HTML feature → PPTX equivalent:
+1. full-slide background image
+2. component image overlays
+3. editable native text boxes
 
-| HTML | PPTX Native |
-|------|-------------|
-| CSS gradient text | Solid color (primary_color) |
-| Glass card | Filled rectangle (bg+20 lighter) with primary border |
-| Blob animations | Captured in background screenshot |
-| Chart.js canvas | Screenshot in background; text fallback in content layer |
-| Custom font (Playfair) | Calibri (system fallback) |
-| Bullet icons (●, ✓) | Unicode in text run |
+Run:
 
-### PPTX Theme Config
-
-Passed to `HybridPPTXBuilder(theme_config=...)`:
-
-```json
-{
-  "name": "aurora-borealis",
-  "primary_color": "6366f1",
-  "text_color": "f1f5f9",
-  "bg_color": "050818",
-  "muted_color": "94a3b8",
-  "display_font": "Calibri",
-  "body_font": "Calibri"
-}
+```bash
+python tools/builder.py --project <project-id>
+python tools/pptx_exporter.py \
+  output/projects/<project-id>/layout_manifest.json \
+  output/projects/<project-id>/presentation.pptx
 ```
 
 ---
@@ -318,15 +361,10 @@ Passed to `HybridPPTXBuilder(theme_config=...)`:
 ## 7. Adding New Slide Types
 
 1. Add the type string to `schemas/outline.schema.json` → `slides.items.properties.type.enum`
-2. Add to `HTMLRenderer` in `tools/html_renderer.py`:
-   ```python
-   @slide_type("new-type-name")
-   def _render_new_type(self, slide: dict, style: dict) -> str:
-       # return HTML string
-   ```
-3. Add to `HybridPPTXBuilder._render_slide_content` dispatch dict in `tools/pptx_exporter.py`
-4. Add content schema to SKILL.md Agent 4 section
-5. Write test in `tests/test_html_renderer.py` for the new type
+2. Add content guidance to SKILL.md Agent 4 so the AI knows when to choose the type.
+3. Add or update React component examples in `web/src/slides/` using `web/src/styles/presets.ts`.
+4. If the type needs a reusable visual primitive, add it near the React renderer rather than embedding the same structure in every generated slide.
+5. Run `npm run build` and a manifest export smoke test.
 
 ---
 
@@ -341,8 +379,13 @@ ppt-workshop/
 ├── tools/
 │   ├── ingest.py                 # Agent 1 helper: PDF/URL content extraction
 │   ├── image_orchestrator.py     # Agent 5: 5-level image fallback
-│   ├── html_renderer.py          # Agent 6: JSON → HTML presentation
-│   └── pptx_exporter.py          # Agent 7: HTML + JSON → Hybrid PPTX
+│   ├── html_renderer.py          # Legacy JSON → HTML presentation renderer
+│   ├── presentation_workspace.py # Project directory management
+│   ├── builder.py                # React → layout manifest extraction
+│   └── pptx_exporter.py          # Manifest → Hybrid PPTX
+├── web/
+│   ├── src/slides/               # Active generated React slide components
+│   └── src/styles/presets.ts     # Reusable style preset registry
 ├── themes/
 │   ├── _base.css                 # CSS variable interface (all themes extend this)
 │   ├── aurora-borealis.css       # Dark aurora gradient theme
@@ -364,5 +407,5 @@ ppt-workshop/
 │   └── test_e2e.py               # End-to-end integration tests
 ├── docs/
 │   └── engineering.md            # This document — authoritative technical reference
-└── output/                       # Runtime checkpoints (gitignored)
+└── output/projects/              # Runtime deck workspaces (gitignored)
 ```

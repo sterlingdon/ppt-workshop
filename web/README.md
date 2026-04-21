@@ -1,73 +1,41 @@
-# React + TypeScript + Vite
+# PPT React Renderer
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+This Vite app is the active visual renderer for the PPT skill.
 
-Currently, two official plugins are available:
+## Responsibilities
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- Render generated slide components from `web/src/slides/`.
+- Provide reusable style presets from `web/src/styles/presets.ts`.
+- Expose two modes:
+  - normal preview mode for local browsing
+  - `?extract=1` mode for Playwright layout extraction
 
-## React Compiler
+## Style Presets
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Agents should choose a preset first, then build slide components from its tokens and recipes instead of inventing a new visual system per slide.
 
-## Expanding the ESLint configuration
+```tsx
+import { getDeckStylePreset, styleVars } from './styles'
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+const preset = getDeckStylePreset('aurora-borealis')
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+<div style={styleVars(preset)} className="bg-[var(--ppt-bg)] text-[var(--ppt-text)]">
+  ...
+</div>
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+Available presets:
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+- `aurora-borealis`: dark technical, cyan-purple light, glass panels
+- `bold-signal`: business/startup, black surfaces, orange signal accents
+- `editorial-ink`: light editorial, print hierarchy, restrained red accent
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+## Output Boundaries
+
+Generated project artifacts should go under `output/projects/<project-id>/`, not directly into `output/`.
+
+`tools/builder.py --project <project-id>` writes:
+
+- `layout_manifest.json`
+- `assets/slide_*_bg.png`
+- `assets/slide_*_comp_*.png`
