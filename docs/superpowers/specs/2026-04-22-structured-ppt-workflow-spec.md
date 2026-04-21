@@ -43,13 +43,15 @@ output/projects/<project-id>/
     └── index.ts
 ```
 
-`output/projects/<project-id>/slides/` is the durable source of truth for generated deck React code.
+`output/projects/<project-id>/slides/` stores generated deck React code as runtime/user output. It is under `output/`, so it is gitignored and should not be committed.
 
-`web/src/slides/` is the active Vite renderer slot. Tools copy a project's slides into this slot before preview/extraction and can snapshot the active slot back into the project.
+`web/src/generated/slides/` is the active Vite renderer slot. It is gitignored. Tools copy a project's slides into this slot before preview/extraction and can snapshot the active slot back into the project when explicitly requested.
+
+`web/src/sample-slides/` contains tracked examples used when no generated deck is active.
 
 This gives the workflow one simple invariant:
 
-> Runtime tools render exactly one active deck, but the repository can store many generated deck workspaces safely.
+> Runtime tools render exactly one active deck, but generated deck source stays outside Git by default.
 
 ### Style Presets
 
@@ -68,8 +70,8 @@ Agents should first choose a style preset, then choose slide patterns inside tha
 Add `tools/ppt_workflow.py` with these subcommands:
 
 - `init --name <name>`: create a project workspace.
-- `snapshot-slides --project <id>`: copy active `web/src/slides/` into the project workspace.
-- `activate --project <id>`: copy project slides into `web/src/slides/`.
+- `snapshot-slides --project <id>`: copy active `web/src/generated/slides/` into the project workspace.
+- `activate --project <id>`: copy project slides into `web/src/generated/slides/`.
 - `validate --project <id>`: run structural quality gates on active/project slides and optional manifest/PPTX outputs.
 - `extract --project <id>`: activate slides, run Playwright extraction, write manifest/assets.
 - `export --project <id>`: build PPTX from manifest.
@@ -92,8 +94,8 @@ Validation returns structured errors and exits non-zero from the CLI when any ga
 ## Data Flow
 
 1. `ppt_workflow.py init --name "Deck Name"` creates the workspace.
-2. Agent writes or updates React slide files in `web/src/slides/`.
-3. `ppt_workflow.py snapshot-slides --project <id>` persists generated source into the deck workspace.
+2. Agent writes or updates React slide files in `output/projects/<project-id>/slides/`.
+3. `ppt_workflow.py validate --project <id>` checks generated source markers.
 4. `ppt_workflow.py build --project <id>` activates project slides, validates, extracts, exports, and validates outputs.
 
 ## Testing

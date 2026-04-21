@@ -1,6 +1,12 @@
 import { createElement, useEffect, useState } from 'react'
 import type { FC } from 'react'
-import slidesExport from './slides'
+import sampleSlides from './sample-slides'
+
+const generatedModules = import.meta.glob<{ default: FC[] }>('./generated/slides/index.ts', {
+  eager: true,
+})
+const generatedSlides = Object.values(generatedModules)[0]?.default
+const slidesExport = generatedSlides ?? sampleSlides
 
 function App() {
   const [slides, setSlides] = useState<FC[]>([])

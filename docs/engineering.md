@@ -20,7 +20,7 @@ INPUT (URL / 文本 / PDF)
     ↓
 [CLAUDE] Agent 3 · 幻灯片规划     → outline.json
     ↓
-[CLAUDE] Agent 4 · React组件构建  → web/src/slides/Slide_N.tsx
+[CLAUDE] Agent 4 · React组件构建  → output/projects/<project-id>/slides/Slide_N.tsx
     ↓
 [PYTHON] Agent 5 · 图片编排       → slides_with_images.json (optional/when needed)
     ↓
@@ -54,7 +54,7 @@ output/projects/<project-id>/
 └── slides/
 ```
 
-`output/projects/<project-id>/slides/` is the durable source of truth for generated deck React code. `web/src/slides/` is the active Vite renderer slot. Use `tools/ppt_workflow.py snapshot-slides` to persist generated source and `tools/ppt_workflow.py activate` to load a project into the renderer slot.
+Generated deck React code is runtime/user output, not repository source. It lives under `output/projects/<project-id>/slides/`, and `output/` is gitignored. `web/src/generated/slides/` is the active Vite renderer slot and is also gitignored. The repository tracks only the renderer, style catalog, tools, tests, docs, and `web/src/sample-slides/` examples.
 
 ### Responsibility Boundaries
 
@@ -64,7 +64,7 @@ output/projects/<project-id>/
 | 1 | Claude/Python | URL/text/PDF | article_text.md | Extract clean article text |
 | 2 | Claude | article_text.md | analysis.json | Domain, key points, statistics, quotes |
 | 3 | Claude | analysis.json | outline.json | Slide count, style preset, slide plan |
-| 4 | Claude/React | outline.json + analysis.json | web/src/slides/* | Visual slide implementation |
+| 4 | Claude/React | outline.json + analysis.json | output/projects/<project-id>/slides/* | Visual slide implementation |
 | 5 | Python | slides.json | slides_with_images.json | Resolve images via 5-level fallback |
 | 6 | Python/Playwright | React app | layout_manifest.json + assets/ | Extract backgrounds/components/text boxes |
 | 7 | Python | layout_manifest.json | presentation.pptx | Stitch PPTX from images + native text |
@@ -83,7 +83,7 @@ python tools/ppt_workflow.py export --project <project-id>
 python tools/ppt_workflow.py build --project <project-id>
 ```
 
-`build` activates project slides, validates source markers, extracts layout/assets, exports PPTX, then validates final outputs.
+`build` activates project slides into `web/src/generated/slides/`, validates source markers, extracts layout/assets, exports PPTX, then validates final outputs.
 
 ---
 
@@ -286,7 +286,7 @@ Current presets:
 React slide components should call:
 
 ```tsx
-import { getDeckStylePreset, styleVars } from '../styles'
+import { getDeckStylePreset, styleVars } from '../../styles'
 
 const preset = getDeckStylePreset('aurora-borealis')
 
@@ -390,7 +390,7 @@ python tools/ppt_workflow.py build --project <project-id>
 
 1. Add the type string to `schemas/outline.schema.json` → `slides.items.properties.type.enum`
 2. Add content guidance to SKILL.md Agent 4 so the AI knows when to choose the type.
-3. Add or update React component examples in `web/src/slides/` using `web/src/styles/presets.ts`.
+3. Add or update tracked examples in `web/src/sample-slides/`, or generated deck slides in `output/projects/<project-id>/slides/`, using `web/src/styles/presets.ts`.
 4. If the type needs a reusable visual primitive, add it near the React renderer rather than embedding the same structure in every generated slide.
 5. Run `npm run build` and a manifest export smoke test.
 
@@ -415,7 +415,8 @@ ppt-workshop/
 │   ├── builder.py                # React → layout manifest extraction
 │   └── pptx_exporter.py          # Manifest → Hybrid PPTX
 ├── web/
-│   ├── src/slides/               # Active generated React slide components
+│   ├── src/generated/            # Ignored active deck renderer slot
+│   ├── src/sample-slides/        # Tracked example slides
 │   └── src/styles/               # Reusable style preset registry and guide
 ├── themes/
 │   ├── _base.css                 # CSS variable interface (all themes extend this)
@@ -438,5 +439,5 @@ ppt-workshop/
 │   └── test_e2e.py               # End-to-end integration tests
 ├── docs/
 │   └── engineering.md            # This document — authoritative technical reference
-└── output/projects/              # Runtime deck workspaces (gitignored)
+└── output/projects/              # Runtime deck workspaces and generated React code (gitignored)
 ```

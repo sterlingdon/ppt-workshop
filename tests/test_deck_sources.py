@@ -11,7 +11,7 @@ def write_active_deck(slides_dir: Path, title: str = "Demo") -> None:
     slides_dir.mkdir(parents=True, exist_ok=True)
     (slides_dir / "Slide_1.tsx").write_text(
         f"""
-import {{ getDeckStylePreset, styleVars }} from '../styles'
+import {{ getDeckStylePreset, styleVars }} from '../../styles'
 
 export default function Slide_1() {{
   const preset = getDeckStylePreset('aurora-borealis')

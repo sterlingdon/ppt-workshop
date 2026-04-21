@@ -8,7 +8,7 @@ from tools.quality_gate import validate_project
 
 
 VALID_SLIDE = """
-import { getDeckStylePreset, styleVars } from '../styles'
+import { getDeckStylePreset, styleVars } from '../../styles'
 
 export default function Slide_1() {
   const preset = getDeckStylePreset('aurora-borealis')

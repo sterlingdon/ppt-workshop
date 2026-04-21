@@ -4,7 +4,7 @@ This Vite app is the active visual renderer for the PPT skill.
 
 ## Responsibilities
 
-- Render generated slide components from `web/src/slides/`.
+- Render generated slide components from ignored `web/src/generated/slides/`, with tracked fallback examples from `web/src/sample-slides/`.
 - Provide reusable style presets from `web/src/styles/presets.ts`.
 - Provide AI-facing style guidance from `web/src/styles/STYLE_GUIDE.md`.
 - Expose two modes:
@@ -33,7 +33,7 @@ Available presets:
 
 ## Output Boundaries
 
-Generated project artifacts should go under `output/projects/<project-id>/`, not directly into `output/`.
+Generated project artifacts should go under `output/projects/<project-id>/`, not directly into `output/`. `output/` is gitignored, so generated deck source does not go to Git by default.
 
 The durable slide source for a deck is:
 
@@ -41,7 +41,11 @@ The durable slide source for a deck is:
 
 The active renderer slot is:
 
-- `web/src/slides/`
+- `web/src/generated/slides/`
+
+Tracked example slides live in:
+
+- `web/src/sample-slides/`
 
 Use:
 

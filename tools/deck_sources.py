@@ -36,7 +36,7 @@ def _copy_slide_sources(source_dir: Path, dest_dir: Path) -> list[Path]:
 
 def snapshot_active_slides(
     workspace: PresentationWorkspace,
-    active_slides_dir: str | Path = "web/src/slides",
+    active_slides_dir: str | Path = "web/src/generated/slides",
 ) -> list[Path]:
     """Persist the active renderer slide slot into a deck project workspace."""
     return _copy_slide_sources(Path(active_slides_dir), workspace.slides_dir)
@@ -44,7 +44,7 @@ def snapshot_active_slides(
 
 def activate_project_slides(
     workspace: PresentationWorkspace,
-    active_slides_dir: str | Path = "web/src/slides",
+    active_slides_dir: str | Path = "web/src/generated/slides",
 ) -> list[Path]:
     """Copy a deck project's durable slide sources into the active renderer slot."""
     return _copy_slide_sources(workspace.slides_dir, Path(active_slides_dir))

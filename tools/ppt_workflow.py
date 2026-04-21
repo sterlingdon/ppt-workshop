@@ -113,7 +113,7 @@ def build_parser() -> argparse.ArgumentParser:
     init.set_defaults(func=cmd_init)
 
     for name, help_text, func in [
-        ("snapshot-slides", "Persist active web/src/slides into a project.", cmd_snapshot_slides),
+        ("snapshot-slides", "Persist active web/src/generated/slides into a project.", cmd_snapshot_slides),
         ("activate", "Copy project slides into the active renderer slot.", cmd_activate),
         ("validate", "Run structural quality gates.", cmd_validate),
         ("extract", "Activate slides and extract layout manifest/assets.", cmd_extract),
@@ -123,7 +123,7 @@ def build_parser() -> argparse.ArgumentParser:
         command = sub.add_parser(name, help=help_text)
         command.add_argument("--project", required=True)
         command.add_argument("--project-root", default="output/projects")
-        command.add_argument("--slides-dir", default="web/src/slides")
+        command.add_argument("--slides-dir", default="web/src/generated/slides")
         command.add_argument("--web-dir", default="web")
         command.add_argument("--port", type=int, default=5173)
         command.set_defaults(func=func)
