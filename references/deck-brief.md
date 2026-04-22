@@ -31,12 +31,15 @@ Must include:
 - `must_cut`
 - `key_data_points`
 - `design_direction`
+- `active_role`
 - `current_stage`
 - `approved_artifacts`
 - `blocking_findings`
 - `handoff_notes`
 
 Do not let downstream agents silently reinterpret shared state. If audience, goal, thesis, content priorities, or design direction changes, update `deck_state.json` and regenerate affected artifacts.
+
+`active_role` records which role prompt is governing the current artifact. Update it whenever the main agent switches roles or work is delegated to a role-specific agent.
 
 ## `analysis.json`
 

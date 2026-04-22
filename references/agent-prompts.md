@@ -2,6 +2,66 @@
 
 Use these prompts for the three core roles. Do not improvise alternate role prompts unless the user explicitly changes the workflow.
 
+## Role Prompt Loading Protocol
+
+The workflow may be executed by one main agent switching roles, or by separate delegated agents. In both cases, the active role prompt must be loaded before starting that role's work.
+
+Before each role starts:
+
+1. Read this file.
+2. Load the Shared Preamble.
+3. Load the exact role prompt for the current stage.
+4. State the active role in working notes or handoff notes.
+5. Execute only that role's responsibilities until its pass condition is met or a blocking finding is recorded.
+
+If one main agent switches from one role to another, it must treat the switch as a fresh role activation. Do not rely on memory from the previous stage. Re-read the relevant prompt and re-anchor on that role's job, inputs, outputs, pass condition, and failure behavior.
+
+If work is delegated to another agent, pass the Shared Preamble plus the full role prompt. Do not pass only a summary, and do not assume the delegated agent has read the skill, workflow, or operator system prompt.
+
+Role boundaries matter:
+
+- The Content Quality Auditor decides what the deck should say; it does not design slides.
+- The PPT Generation Agent turns approved content into a visual system and React slides; it does not re-audit the article from scratch.
+- The Visual Review/Validation Agent judges rendered screenshots and repairs visual quality; it does not accept validator success as visual approval.
+
+## Sub-Agent Delegation Policy
+
+Default: do not delegate. This workflow works best when one executing agent owns orchestration, role activation, `deck_state.json`, gate decisions, invalidation, and final artifact consistency.
+
+Delegation is optional and subordinate to the active role. Use it only for narrow tasks that can be completed without changing workflow decisions.
+
+Allowed delegation examples:
+
+- inspect a small set of slide files for marker or overflow risks
+- repair one named slide for one named visual finding
+- extract candidate evidence from source material for auditor review
+- compare generated artifacts for consistency after the main role has produced them
+
+Do not delegate:
+
+- orchestration of the full workflow
+- role activation or prompt selection
+- content gate approval
+- design direction, Design DNA, or slide blueprint ownership
+- AI visual gate approval
+- invalidation decisions
+- cross-role rewrites such as changing `analysis.json` during PPT Generation
+
+Required delegation packet:
+
+- Shared Preamble
+- full active role prompt
+- current `deck_state.json`
+- relevant artifact paths and exact files to read
+- write scope, or explicit read-only instruction
+- the single task to perform
+- expected output shape
+- forbidden changes and role boundaries
+
+If that packet is too large or unclear, do not delegate. The main executing agent should do the work directly.
+
+The main executing agent must review delegated output before accepting it, integrate any changes, update `deck_state.json`, and rerun the relevant gate. A sub-agent result is never a pass condition by itself.
+
 ## Shared Preamble
 
 All core agents share this preamble:
@@ -10,6 +70,11 @@ All core agents share this preamble:
 You are working inside one Article-to-PPT project workspace.
 
 Read deck_state.json first. Treat it as the compact shared state across all agents. If your work changes audience, goal, thesis, content priorities, design direction, current stage, approved artifacts, or blocking findings, update deck_state.json before handoff.
+
+At role activation, set deck_state.json.active_role to the active role value:
+- content_quality_auditor
+- ppt_generation_agent
+- visual_review_validation_agent
 
 Do not invent facts, statistics, quotes, user intent, source claims, file paths, or validation results. If source material is weak, say so and narrow the deck instead of padding.
 
@@ -171,6 +236,7 @@ Before handing off, each agent must update `deck_state.json`:
 
 ```json
 {
+  "active_role": "...",
   "current_stage": "...",
   "approved_artifacts": ["..."],
   "blocking_findings": [],

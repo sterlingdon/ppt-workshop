@@ -14,7 +14,8 @@ Do not treat the CLI as an article-to-PPT generator or visual designer. The CLI 
 ## Read Only What You Need
 
 - Start every deck: read [`references/workflow.md`](references/workflow.md).
-- Before running any core agent role: read [`references/agent-prompts.md`](references/agent-prompts.md) and pass the relevant role prompt to the agent exactly enough that the agent can execute it. Do not assume the agent has already read this skill or its system prompt.
+- Before running any core agent role, including role switches performed by the same main agent: read [`references/agent-prompts.md`](references/agent-prompts.md), load the Shared Preamble, and load the exact active role prompt. Do not assume the agent has already read this skill, workflow, or system prompt.
+- Default to no sub-agent delegation. If delegation is necessary, follow the Sub-Agent Delegation Policy in [`references/workflow.md`](references/workflow.md) and [`references/agent-prompts.md`](references/agent-prompts.md); never delegate orchestration, role activation, gate approval, Design DNA ownership, slide blueprint ownership, AI visual approval, or invalidation decisions.
 - Before writing any artifact: use [`references/artifact-templates.md`](references/artifact-templates.md).
 - Before analysis/planning: read [`references/deck-brief.md`](references/deck-brief.md) and [`references/semantic-validation.md`](references/semantic-validation.md).
 - Before creating `design_recommendation.json` or `design_dna.json`: read [`references/ppt-visual-design.md`](references/ppt-visual-design.md), then invoke `ui-ux-pro-max` as a product/web design intelligence source for transferable visual principles, not as a request to build a website.
@@ -29,7 +30,7 @@ Each deck lives under `output/projects/<project-id>/`.
 Required working contract:
 
 - `article_text.md`: cleaned source text.
-- `deck_state.json`: shared state read and updated by all three core agents.
+- `deck_state.json`: shared state read and updated by all three core agents, including `active_role` for the prompt currently governing the workflow.
 - `analysis.json`: audience-relevant facts, thesis, statistics, entities, language, and suggested theme.
 - `content_quality_report.json`: content auditor gate result. It proves the deck angle, audience, key points, and data emphasis are correct before slide generation.
 - `design_recommendation.json`: distilled `ui-ux-pro-max` recommendation used to create the deck's design system.
@@ -47,11 +48,11 @@ Required working contract:
 
 1. Create or select the project workspace.
 2. Extract clean article text into `article_text.md` and initialize `deck_state.json`.
-3. Run the **Content Quality Auditor**: read `deck_state.json`, create `analysis.json`, identify the audience, deck goal, thesis, must-emphasize facts, must-cut noise, data points, and slide-worthy arguments.
+3. Activate the **Content Quality Auditor** role prompt, set `deck_state.json.active_role` to `content_quality_auditor`: read `deck_state.json`, create `analysis.json`, identify the audience, deck goal, thesis, must-emphasize facts, must-cut noise, data points, and slide-worthy arguments.
 4. Write `content_quality_report.json` using the report examples in `examples/reports/`; do not proceed unless it has `status: "pass"`, no blocking content findings, no required revisions, and all `resolution_log` items resolved. If the report requires revisions, update the content artifacts, record the fixes, and re-run the audit before handoff.
-5. Run the **PPT Generation Agent**: provide the exact prompt from `references/agent-prompts.md`, read `references/ppt-visual-design.md`, invoke `ui-ux-pro-max`, write `design_recommendation.json`, create `design_dna.json`, create `outline.json`, create `slide_blueprint.json`, then write React slides in `output/projects/<project-id>/slides/`.
+5. Activate the **PPT Generation Agent** role prompt, set `deck_state.json.active_role` to `ppt_generation_agent`: provide the exact prompt from `references/agent-prompts.md`, read `references/ppt-visual-design.md`, invoke `ui-ux-pro-max`, write `design_recommendation.json`, create `design_dna.json`, create `outline.json`, create `slide_blueprint.json`, then write React slides in `output/projects/<project-id>/slides/`.
 6. Run structural validation.
-7. Run `python3 tools/ppt_workflow.py review-screenshots --project <project-id>` to create rendered review screenshots in `review/full_deck.png` and `review/slides/*.png`, then run the **Visual Review/Validation Agent**: inspect those screenshots with an AI visual lens, write `visual_review_report.json`, repair weak slides, record each repair in `repair_log`, regenerate screenshots, and repeat until there are no blocking design findings.
+7. Run `python3 tools/ppt_workflow.py review-screenshots --project <project-id>` to create rendered review screenshots in `review/full_deck.png` and `review/slides/*.png`, then activate the **Visual Review/Validation Agent** role prompt and set `deck_state.json.active_role` to `visual_review_validation_agent`: inspect those screenshots with an AI visual lens, write `visual_review_report.json`, repair weak slides, record each repair in `repair_log`, regenerate screenshots, and repeat until there are no blocking design findings.
 8. Run browser engineering validation and repair until `visual_validation_report.json.summary.failed` is `0`.
 9. Build/export the deck.
 10. Verify `presentation.pptx` exists, is non-empty, and was rebuilt from the approved slides.
@@ -88,6 +89,8 @@ python3 tools/ppt_workflow.py export --project <project-id>
 ## Non-Negotiables
 
 - Write for the audience, not for the article structure.
+- Role prompts are mandatory execution context. Before switching roles, re-read `references/agent-prompts.md`, load the Shared Preamble plus the active role prompt, and let that role's pass/failure conditions govern the next artifact.
+- Sub-agent delegation is optional and discouraged by default. Use it only for narrow tasks with complete role context, explicit artifact paths, clear write scope, and main-agent review.
 - Never start slide generation before the Content Quality Auditor has approved the deck angle and key points.
 - One deck, one visual system. Do not mix presets or invent unrelated styles per slide.
 - Use `design_dna.json` as the style contract.

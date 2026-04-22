@@ -63,9 +63,45 @@ output/projects/<project-id>/
 
 All three core agents must read `deck_state.json` before work and update it before handoff. Use the system prompts in `references/agent-prompts.md` and artifact formats in `references/artifact-templates.md`; do not improvise a new role prompt or artifact shape.
 
-When assigning work to another agent, include the Shared Preamble plus that role's exact prompt from `references/agent-prompts.md`. Do not assume a delegated agent has read this skill, this workflow, or the operator's system prompt.
+Role switching is an explicit gate. Before starting Content Quality Audit, PPT Generation, or Visual Review/Validation, the executing agent must read `references/agent-prompts.md`, load the Shared Preamble, load the exact prompt for the active role, and then perform only that role's responsibilities until its pass condition is met or a blocking finding is recorded.
+
+This applies even when one main agent performs the whole workflow sequentially. A transition from Content Quality Auditor to PPT Generation Agent, or from PPT Generation Agent to Visual Review/Validation Agent, must be treated as a fresh role activation rather than a continuation of generic assistant behavior.
+
+When assigning work to another agent, include the Shared Preamble plus that role's full prompt from `references/agent-prompts.md`. Do not pass only a summary, and do not assume a delegated agent has read this skill, this workflow, or the operator's system prompt.
+
+Set `deck_state.json.active_role` when handing off or switching stages, so the next step can verify which prompt governed the artifact. Add a short `handoff_notes` entry if the role activation changed what downstream agents should know.
 
 Before writing slide code, read `examples/react-slides/minimal-deck/README.md` and copy its import, `index.ts`, and marker patterns. The examples are the positive path; validators are only the fallback.
+
+## Sub-Agent Delegation Policy
+
+Default: do not delegate. The main executing agent should usually run this workflow directly because content audit, design generation, slide authoring, and visual review are sequential gates with shared state.
+
+The main executing agent must always own:
+
+- workflow orchestration
+- role prompt activation
+- `deck_state.json.active_role`
+- pass/fail gate decisions
+- invalidation decisions
+- final artifact consistency
+
+Delegation is allowed only for narrow subtasks under the current active role, such as inspecting a small set of slides, repairing one named slide for one named finding, extracting candidate evidence for auditor review, or checking consistency between already-generated artifacts.
+
+Before delegating, the main agent must provide the delegated agent with:
+
+- the Shared Preamble
+- the full active role prompt from `references/agent-prompts.md`
+- current `deck_state.json`
+- relevant artifact paths
+- exact read/write scope
+- one concrete task
+- expected output shape
+- forbidden changes and role boundaries
+
+Do not delegate if the context packet would be incomplete, too broad, or ambiguous. Never delegate full workflow orchestration, role selection, content gate approval, Design DNA ownership, slide blueprint ownership, AI visual gate approval, invalidation decisions, or cross-role artifact rewrites.
+
+The main executing agent must review delegated output before accepting it, integrate changes itself or within the declared write scope, update `deck_state.json`, and rerun the relevant gate. A sub-agent result does not satisfy a pass condition by itself.
 
 `deck_state.json` is the compact shared memory:
 
@@ -83,6 +119,7 @@ Before writing slide code, read `examples/react-slides/minimal-deck/README.md` a
   "must_cut": [],
   "key_data_points": [],
   "design_direction": "...",
+  "active_role": "none",
   "current_stage": "ingest",
   "approved_artifacts": [],
   "blocking_findings": [],
@@ -92,11 +129,15 @@ Before writing slide code, read `examples/react-slides/minimal-deck/README.md` a
 
 Handoff rule: a downstream agent must not reinterpret audience, goal, thesis, or content priorities unless it updates `deck_state.json` and regenerates affected downstream artifacts.
 
+Allowed `active_role` values are `none`, `content_quality_auditor`, `ppt_generation_agent`, and `visual_review_validation_agent`.
+
 ## Three Critical Agents
 
 ### 1. Content Quality Auditor
 
 Purpose: make sure the future deck is worth making for a specific audience before any slide generation starts.
+
+Role activation: load the Shared Preamble plus the Content Quality Auditor prompt from `references/agent-prompts.md` before reading source content or writing `analysis.json`.
 
 Inputs:
 
@@ -127,6 +168,8 @@ Blocking rule: if `content_quality_report.json` has blocking findings, fix the c
 Purpose: turn the approved content into a coherent, styled React deck.
 
 This is the A-lens visual generation pass. It owns design direction, typography sizing, composition, and visual craft before any validator or export step runs.
+
+Role activation: load the Shared Preamble plus the PPT Generation Agent prompt from `references/agent-prompts.md` before invoking `ui-ux-pro-max`, creating design artifacts, or writing React slides.
 
 Inputs:
 
@@ -166,6 +209,8 @@ Must do:
 
 Purpose: use AI visual judgment plus engineering checks to make the rendered deck presentation-grade.
 
+Role activation: load the Shared Preamble plus the Visual Review/Validation Agent prompt from `references/agent-prompts.md` before inspecting screenshots, writing `visual_review_report.json`, or repairing slides.
+
 Inputs:
 
 - `deck_state.json`
@@ -197,15 +242,15 @@ Must do:
 ## Stage Checklist
 
 1. **Ingest**: extract clean source into `article_text.md` and initialize `deck_state.json`. Remove navigation, ads, boilerplate, and irrelevant appendix material.
-2. **Content Quality Audit**: create `analysis.json` and `content_quality_report.json`. If the auditor sets `status: "needs_revision"`, repair the affected content artifacts, record resolved items in `resolution_log`, and re-run the audit until `status: "pass"`, `blocking_findings == 0`, `required_revisions == []`, and every `resolution_log` item is `resolved`.
+2. **Content Quality Audit**: activate the Content Quality Auditor role prompt, set `deck_state.json.active_role` to `content_quality_auditor`, then create `analysis.json` and `content_quality_report.json`. If the auditor sets `status: "needs_revision"`, repair the affected content artifacts, record resolved items in `resolution_log`, and re-run the audit until `status: "pass"`, `blocking_findings == 0`, `required_revisions == []`, and every `resolution_log` item is `resolved`.
 3. **Design Intelligence**: read `references/ppt-visual-design.md`, then invoke `ui-ux-pro-max` with the approved deck domain, audience, tone, complexity, source thesis, and desired presentation goal. The query must state that `ui-ux-pro-max` is being used for transferable web/product design principles adapted to a fixed 16:9 PowerPoint deck, not for website or app UI generation. Save the distilled style, palette, typography, layout, chart, and UX-quality recommendations to `design_recommendation.json`.
 4. **Design DNA**: create `design_dna.json` from the `ui-ux-pro-max` recommendations. Map the recommended visual direction to the closest local renderer preset, then add token extensions, visual recipes, slide-pattern assignments, and consistency rules. If token extensions override preset colors or fonts, React slides must spread those overrides after `styleVars(preset)`.
 5. **Outline**: create `outline.json`. Every slide needs a type, title, and one sentence explaining its job. The outline must reflect `content_quality_report.json`.
 6. **Slide Blueprint**: create `slide_blueprint.json` with each slide's role, key message, supporting evidence, `locked_copy`, flattened `required_texts`, visual anchor, layout pattern, type-scale guidance, hierarchy plan, whitespace strategy, density target, and marker requirements. `locked_copy` is what React renders; `required_texts` is only a validation-friendly flattening of the same copy.
-7. **PPT Generation**: write slide components in `output/projects/<project-id>/slides/`. Each slide root is 1920x1080 and has `data-ppt-slide`.
+7. **PPT Generation**: activate the PPT Generation Agent role prompt, set `deck_state.json.active_role` to `ppt_generation_agent`, then write slide components in `output/projects/<project-id>/slides/`. Each slide root is 1920x1080 and has `data-ppt-slide`.
 8. **Structural Gate**: run `python3 tools/ppt_workflow.py validate --project <project-id>`.
 9. **Render Review Assets**: run `python3 tools/ppt_workflow.py review-screenshots --project <project-id>`. This activates the project slides, opens the full-deck browser preview with `?extract=1`, writes `review/full_deck.png`, and writes one screenshot per slide to `review/slides/slide_XX.png`.
-10. **AI Lens Review**: inspect the rendered browser deck as a visual director. Judge hierarchy, focal point, visual rhythm, brand consistency, information density, audience usefulness, and slide-to-slide pacing.
+10. **AI Lens Review**: activate the Visual Review/Validation Agent role prompt, set `deck_state.json.active_role` to `visual_review_validation_agent`, then inspect the rendered browser deck as a visual director. Judge hierarchy, focal point, visual rhythm, brand consistency, information density, audience usefulness, and slide-to-slide pacing.
 11. **AI Repair Loop**: write `visual_review_report.json`, repair React slides, record each fix in `repair_log`, regenerate `review/full_deck.png` and `review/slides/*.png`, then repeat AI review until `status: "pass"`, every slide has `passed: true`, `blocking_findings == 0`, and every `repair_log` item is `resolved`.
 12. **Engineering Browser Gate**: run `python3 tools/ppt_workflow.py visual-validate --project <project-id>`. This is a rendered DOM visibility and overflow check, not an AI visual-quality review. Repair reported text, clipping, coverage, or overflow issues until `summary.failed == 0`. If the repair changes any slide source, return to Stage 9 and regenerate review screenshots before repeating AI Lens Review.
 13. **Build**: run `python3 tools/ppt_workflow.py build --project <project-id>`.

@@ -20,6 +20,7 @@ Created during ingest and updated by every core agent.
   "must_cut": [],
   "key_data_points": [],
   "design_direction": "",
+  "active_role": "none",
   "current_stage": "ingest",
   "approved_artifacts": [],
   "blocking_findings": [],
@@ -42,6 +43,15 @@ Allowed `current_stage` values:
 - `engineering_validation`
 - `export`
 - `complete`
+
+Allowed `active_role` values:
+
+- `none`
+- `content_quality_auditor`
+- `ppt_generation_agent`
+- `visual_review_validation_agent`
+
+Update `active_role` at every role activation. Set it to the role currently governing the artifact being written; reset to `none` only when the deck is complete or paused outside a role.
 
 `deck_state.blocking_findings` is a list of unresolved handoff issues. Report files such as `content_quality_report.json` and `visual_review_report.json` use numeric `blocking_findings` counts.
 
