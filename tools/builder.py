@@ -9,8 +9,59 @@ from playwright.async_api import async_playwright
 
 try:
     from .presentation_workspace import create_project_workspace, get_project_workspace
+    from .item_manifest import make_box, make_group, make_item
 except ImportError:
     from presentation_workspace import create_project_workspace, get_project_workspace
+    from item_manifest import make_box, make_group, make_item
+
+
+TEXT_STYLE_JS = """el => {
+    const s = window.getComputedStyle(el);
+    const runs = [];
+    function walk(node, inherited) {
+        if (node.nodeType === 3) {
+            const t = node.textContent;
+            if (t) runs.push({ text: t, style: { ...inherited } });
+        } else if (node.nodeName === 'BR') {
+            runs.push({ text: '\\n', style: { ...inherited } });
+        } else if (node.nodeType === 1) {
+            const cs = window.getComputedStyle(node);
+            const cur = {
+                color: cs.color,
+                fontWeight: cs.fontWeight,
+                fontSize: cs.fontSize,
+                fontFamily: cs.fontFamily,
+                fontStyle: cs.fontStyle,
+                textDecorationLine: cs.textDecorationLine,
+            };
+            for (const c of node.childNodes) walk(c, cur);
+        }
+    }
+    const rootRun = {
+        color: s.color,
+        fontWeight: s.fontWeight,
+        fontSize: s.fontSize,
+        fontFamily: s.fontFamily,
+        fontStyle: s.fontStyle,
+        textDecorationLine: s.textDecorationLine,
+    };
+    for (const c of el.childNodes) walk(c, rootRun);
+    return {
+        fontSize: s.fontSize,
+        fontFamily: s.fontFamily,
+        color: s.color,
+        fontWeight: s.fontWeight,
+        textAlign: s.textAlign,
+        text: runs.map(r => r.text).join('') || el.innerText,
+        backgroundColor: s.backgroundColor,
+        borderRadius: s.borderRadius,
+        paddingTop: s.paddingTop,
+        paddingBottom: s.paddingBottom,
+        paddingLeft: s.paddingLeft,
+        paddingRight: s.paddingRight,
+        runs: runs.length > 0 ? runs : null,
+    };
+}"""
 
 async def extract_layout_and_assets(web_dir="web", workspace=None, port=5173):
     if workspace is None:
@@ -63,6 +114,8 @@ async def extract_layout_and_assets(web_dir="web", workspace=None, port=5173):
                     "index": slide_index,
                     "texts": [],
                     "components": [],
+                    "groups": [],
+                    "rasterFallbacks": [],
                     "bg_path": str(workspace.assets_dir / f"slide_{slide_index}_bg.png")
                 }
 
@@ -75,72 +128,28 @@ async def extract_layout_and_assets(web_dir="web", workspace=None, port=5173):
                         continue
 
                     # 计算相对于当前 Slide 容器的坐标，彻底无视视口滚动或边距偏差
-                    rel_box = {
-                        "x": box["x"] - slide_box["x"],
-                        "y": box["y"] - slide_box["y"],
-                        "width": box["width"],
-                        "height": box["height"]
-                    }
-
-                    style = await txt_loc.evaluate("""el => {
-                        const s = window.getComputedStyle(el);
-
-                        // Walk the DOM tree to collect per-run styles (handles <br> and <span> color/weight overrides)
-                        const runs = [];
-                        function walk(node, inherited) {
-                            if (node.nodeType === 3) {
-                                const t = node.textContent;
-                                if (t) runs.push({ text: t, style: { ...inherited } });
-                            } else if (node.nodeName === 'BR') {
-                                runs.push({ text: '\\n', style: { ...inherited } });
-                            } else if (node.nodeType === 1) {
-                                const cs = window.getComputedStyle(node);
-                                const cur = {
-                                    color:              cs.color,
-                                    fontWeight:         cs.fontWeight,
-                                    fontSize:           cs.fontSize,
-                                    fontFamily:         cs.fontFamily,
-                                    fontStyle:          cs.fontStyle,
-                                    textDecorationLine: cs.textDecorationLine,
-                                };
-                                for (const c of node.childNodes) walk(c, cur);
-                            }
-                        }
-                        const rootRun = {
-                            color:              s.color,
-                            fontWeight:         s.fontWeight,
-                            fontSize:           s.fontSize,
-                            fontFamily:         s.fontFamily,
-                            fontStyle:          s.fontStyle,
-                            textDecorationLine: s.textDecorationLine,
-                        };
-                        for (const c of el.childNodes) walk(c, rootRun);
-
-                        return {
-                            fontSize:           s.fontSize,
-                            fontFamily:         s.fontFamily,
-                            color:              s.color,
-                            fontWeight:         s.fontWeight,
-                            textAlign:          s.textAlign,
-                            text:               runs.map(r => r.text).join('') || el.innerText,
-                            backgroundColor:    s.backgroundColor,
-                            borderRadius:       s.borderRadius,
-                            paddingTop:         s.paddingTop,
-                            paddingBottom:      s.paddingBottom,
-                            paddingLeft:        s.paddingLeft,
-                            paddingRight:       s.paddingRight,
-                            runs:               runs.length > 0 ? runs : null,
-                        };
-                    }""")
-
-                    slide_info["texts"].append({
-                        "id": f"text_{slide_index}_{txt_index}",
-                        "box": rel_box,
-                        "style": style
-                    })
+                    style = await txt_loc.evaluate(TEXT_STYLE_JS)
+                    is_inside_item = await txt_loc.evaluate("el => Boolean(el.closest('[data-ppt-item]'))")
+                    if not is_inside_item:
+                        slide_info["texts"].append({
+                            "id": f"text_{slide_index}_{txt_index}",
+                            "box": make_box(box, slide_box),
+                            "style": style
+                        })
 
                     # 关键动作：隐掉文本，防止印到底图标上。使用 visibility 保证它绝对不会留有颜色残影，且不破坏周围流式布局！
                     await txt_loc.evaluate("el => el.style.visibility = 'hidden'")
+
+                group_locators = await slide_loc.locator("[data-ppt-group]").all()
+                for group_loc in group_locators:
+                    await group_loc.evaluate("""
+                        el => {
+                            for (const item of el.querySelectorAll('[data-ppt-item]')) {
+                                item.dataset.pptOriginalVisibility = item.style.visibility || '';
+                                item.style.visibility = 'hidden';
+                            }
+                        }
+                    """)
 
                 # ------ STEP 2: 先截全页底图（含卡片 box-shadow）------
                 # 必须在隐藏任何卡片之前截取，这样背景图里才能保留
@@ -148,26 +157,90 @@ async def extract_layout_and_assets(web_dir="web", workspace=None, port=5173):
                 # PPT 里：底图保留阴影 → 卡片覆层精确遮住卡片区域 → 阴影从两侧透出
                 await slide_loc.screenshot(path=slide_info["bg_path"])
 
+                # ------ STEP 2b: 提取 item-aware 组件组 -----------------
+                for group_index, group_loc in enumerate(group_locators):
+                    group_box = await group_loc.bounding_box()
+                    if not group_box:
+                        slide_info["rasterFallbacks"].append({
+                            "id": f"group_{slide_index}_{group_index}",
+                            "reason": "zero-size-box",
+                            "mode": "slide-raster",
+                        })
+                        continue
+
+                    kind = await group_loc.get_attribute("data-ppt-group") or "unknown"
+                    await group_loc.evaluate("""
+                        el => {
+                            for (const item of el.querySelectorAll('[data-ppt-item]')) {
+                                item.style.visibility = item.dataset.pptOriginalVisibility || '';
+                                delete item.dataset.pptOriginalVisibility;
+                            }
+                        }
+                    """)
+
+                    item_locators = await group_loc.locator("[data-ppt-item]").all()
+                    items = []
+                    for item_index, item_loc in enumerate(item_locators):
+                        item_box = await item_loc.bounding_box()
+                        if not item_box:
+                            continue
+
+                        item_texts = []
+                        item_text_locators = await item_loc.locator("[data-ppt-text]").all()
+                        for text_index, item_text_loc in enumerate(item_text_locators):
+                            text_box = await item_text_loc.bounding_box()
+                            if not text_box:
+                                continue
+                            style = await item_text_loc.evaluate(TEXT_STYLE_JS)
+                            item_texts.append({
+                                "id": f"text_{slide_index}_{group_index}_{item_index}_{text_index}",
+                                "box": make_box(text_box, item_box),
+                                "style": style,
+                            })
+                            await item_text_loc.evaluate("el => el.style.visibility = 'hidden'")
+
+                        item_path = str(workspace.assets_dir / f"slide_{slide_index}_group_{group_index}_item_{item_index}.png")
+                        await item_loc.screenshot(path=item_path, omit_background=True)
+
+                        for item_text_loc in item_text_locators:
+                            await item_text_loc.evaluate("el => el.style.visibility = ''")
+
+                        items.append(make_item(
+                            slide_index=slide_index,
+                            group_index=group_index,
+                            item_index=item_index,
+                            box=make_box(item_box, slide_box),
+                            raster_path=item_path,
+                            texts=item_texts,
+                            bullets=[],
+                        ))
+
+                    slide_info["groups"].append(make_group(
+                        slide_index=slide_index,
+                        group_index=group_index,
+                        kind=kind,
+                        box=make_box(group_box, slide_box),
+                        items=items,
+                        segments=[],
+                    ))
+
                 # ------ STEP 3: 提取局部组件截图并隐身 ------
                 bg_locators = await slide_loc.locator("[data-ppt-bg]").all()
                 for bg_index, bg_loc in enumerate(bg_locators):
+                    is_inside_group = await bg_loc.evaluate("el => Boolean(el.closest('[data-ppt-group]'))")
+                    if is_inside_group:
+                        continue
+
                     box = await bg_loc.bounding_box()
                     if not box:
                         continue
-
-                    rel_box = {
-                        "x": box["x"] - slide_box["x"],
-                        "y": box["y"] - slide_box["y"],
-                        "width": box["width"],
-                        "height": box["height"]
-                    }
 
                     comp_path = str(workspace.assets_dir / f"slide_{slide_index}_comp_{bg_index}.png")
                     await bg_loc.screenshot(path=comp_path, omit_background=True)
 
                     slide_info["components"].append({
                         "id": f"comp_{slide_index}_{bg_index}",
-                        "box": rel_box,
+                        "box": make_box(box, slide_box),
                         "path": comp_path
                     })
 
