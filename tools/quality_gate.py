@@ -77,6 +77,20 @@ def _check_manifest_assets(workspace: PresentationWorkspace, report: QualityRepo
             comp_path = component.get("path")
             if comp_path and not _resolve_manifest_path(workspace, comp_path).exists():
                 report.errors.append(f"missing asset referenced by manifest: {comp_path}")
+        for group in slide.get("groups", []):
+            group_id = group.get("id", "unknown")
+            if not group.get("items"):
+                report.errors.append(f"item-aware group has no items: {group_id}")
+            for item in group.get("items", []):
+                raster_path = item.get("raster", {}).get("path")
+                if raster_path and not _resolve_manifest_path(workspace, raster_path).exists():
+                    report.errors.append(f"missing item raster referenced by manifest: {raster_path}")
+                box = item.get("box", {})
+                if box.get("width", 0) <= 0 or box.get("height", 0) <= 0:
+                    report.errors.append(f"item has non-positive box: {item.get('id', 'unknown')}")
+        for fallback in slide.get("rasterFallbacks", []):
+            if fallback.get("mode") and not fallback.get("reason"):
+                report.errors.append(f"fallback missing reason: {fallback.get('id', 'unknown')}")
 
 
 def _check_pptx(workspace: PresentationWorkspace, report: QualityReport) -> None:

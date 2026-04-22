@@ -80,3 +80,18 @@ def test_validate_project_checks_manifest_asset_paths(tmp_path):
 
     assert not report.ok
     assert any("missing asset" in error for error in report.errors)
+
+
+def test_quality_gate_rejects_empty_item_group(tmp_path):
+    workspace = create_project_workspace("Item Deck", root_dir=tmp_path, project_id="item-deck")
+    (workspace.slides_dir / "Slide_1.tsx").write_text(VALID_SLIDE, encoding="utf-8")
+    write_index(workspace.slides_dir)
+    workspace.manifest_path.write_text(
+        '{"slides":[{"index":0,"groups":[{"id":"group_0_0","kind":"list","items":[]}],"texts":[]}]}',
+        encoding="utf-8",
+    )
+
+    report = validate_project(workspace)
+
+    assert not report.ok
+    assert any("has no items" in error for error in report.errors)
