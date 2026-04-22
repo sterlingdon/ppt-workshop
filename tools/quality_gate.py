@@ -69,7 +69,11 @@ def _check_manifest_assets(workspace: PresentationWorkspace, report: QualityRepo
         report.errors.append(f"layout manifest is not valid JSON: {exc}")
         return
 
-    for slide in data.get("slides", []):
+    slides = data.get("slides", [])
+    if not slides:
+        report.errors.append(f"manifest contains no slides: {workspace.manifest_path}")
+
+    for slide in slides:
         bg_path = slide.get("bg_path")
         if bg_path and not _resolve_manifest_path(workspace, bg_path).exists():
             report.errors.append(f"missing asset referenced by manifest: {bg_path}")

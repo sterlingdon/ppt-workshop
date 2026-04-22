@@ -95,3 +95,15 @@ def test_quality_gate_rejects_empty_item_group(tmp_path):
 
     assert not report.ok
     assert any("has no items" in error for error in report.errors)
+
+
+def test_quality_gate_rejects_empty_manifest_slides(tmp_path):
+    workspace = create_project_workspace("Empty Manifest", root_dir=tmp_path, project_id="empty-manifest")
+    (workspace.slides_dir / "Slide_1.tsx").write_text(VALID_SLIDE, encoding="utf-8")
+    write_index(workspace.slides_dir)
+    workspace.manifest_path.write_text('{"slides":[]}', encoding="utf-8")
+
+    report = validate_project(workspace)
+
+    assert not report.ok
+    assert any("manifest contains no slides" in error for error in report.errors)
