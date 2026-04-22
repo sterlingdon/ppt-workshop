@@ -17,11 +17,11 @@
 The exporter renders in this order:
 
 1. Slide background.
-2. Legacy `data-ppt-bg` components.
+2. `data-ppt-bg` components.
 3. Group tracks and connector segments.
 4. Item rasters.
 5. Native item text.
-6. Legacy slide-level native text.
+6. Slide-level native text.
 
 ## Fallback Hints
 

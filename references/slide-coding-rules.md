@@ -43,6 +43,7 @@ Visual fidelity is the product floor. Do not simplify visual design to make Powe
 - `data-ppt-text` defaults to native export and is hidden during raster capture.
 - `data-ppt-text data-ppt-native-text="skip"` stays visible in its local raster and is not exported as a native PPT text box.
 - Use `skip` for tiny labels, kicker pills, badges, chart tags, and text with critical CSS effects such as letter spacing, glow, gradient clipping, or blend modes.
+- **Shadow Wrapper Contract**: Because Playwright's component capture clips to the element's strict bounding box, any `data-ppt-item` or `data-ppt-bg` element with a `box-shadow` or `drop-shadow` MUST be wrapped in an invisible padding layer (e.g., `className="p-10 -m-10"`) that acts as the marker host. This ensures the extracted raster has enough space to hold the shadow ink without cropping.
 
 ## Non-Negotiable Rules
 
@@ -51,6 +52,17 @@ Visual fidelity is the product floor. Do not simplify visual design to make Powe
 - Keep `data-ppt-text` inside the relevant `data-ppt-item`.
 - Do not put `data-ppt-text` on a complex label unless you also mark it with `data-ppt-native-text="skip"`.
 - If a component cannot be itemized without visual risk, use raster fallback instead of reducing visual quality.
+- If a slide title, subtitle, or body copy must be visible to humans, it must be visible in HTML preview too. PPTX-only visibility is a bug.
+- Do not hide essential content with `display:none`, `visibility:hidden`, `opacity:0`, or off-canvas positioning unless it is explicitly a temporary extractor-only state.
+- When a piece of content is intentionally exported as native PowerPoint text but should stay visually faithful in HTML, prefer `data-ppt-native-text="skip"` on a safe visible duplicate or restyle the text so both HTML and PPTX share the same visible layer.
+
+## Visual Validation Contract
+
+- Browser validation must inspect the rendered HTML tree, not just the manifest.
+- Repaired slides must be rerun through validation until the validator returns no issues.
+- The preview server should be reused when possible and closed when the validator owns it.
+- Use `?extract=1` for stable full-deck inspection when checking export consistency.
+- HTML and PPTX must agree on essential visible content.
 
 ## Minimal Valid List
 

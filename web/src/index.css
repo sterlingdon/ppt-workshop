@@ -12,3 +12,10 @@ body {
   padding: 0;
   overflow: hidden; /* Each slide will be positioned specifically */
 }
+
+/* Extract mode: allow scrolling to view all stacked slides */
+html[data-extract="true"] body,
+body.extract-mode {
+  overflow-y: auto;
+  overflow-x: hidden;
+}

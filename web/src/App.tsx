@@ -34,14 +34,16 @@ function App() {
 
   const viewportScale = Math.min(window.innerWidth / 1920, window.innerHeight / 1080) * 0.95
 
-  // Extract Mode: Render all slides strictly unscaled and stacked for Playwright
+// Extract Mode: Render all slides strictly unscaled and stacked for Playwright
+  // Allow scrolling to view all slides when viewport is smaller than slide height
   if (isExtract) {
+    document.documentElement.setAttribute('data-extract', 'true');
     return (
       <div className="flex flex-col bg-transparent w-[1920px]">
         {slides.map((SlideComponent, index) => (
-          <div key={index} className="relative w-[1920px] h-[1080px] overflow-hidden">
-             <SlideComponent />
-          </div>
+           <div key={index} className="relative w-[1920px] h-[1080px] overflow-hidden">
+              <SlideComponent />
+           </div>
         ))}
       </div>
     )

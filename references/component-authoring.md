@@ -7,12 +7,14 @@ Use this when writing React slide components. Build rich visuals, but keep repea
 ```tsx
 <div data-ppt-group="list" className="space-y-5">
   {items.map((item) => (
-    <div data-ppt-item key={item.id} className="relative flex gap-5 rounded-3xl p-6">
-      <div data-ppt-item-bg className="absolute inset-0 rounded-3xl bg-white/10 shadow-2xl" />
-      <img data-ppt-bullet src={item.icon} className="relative z-10 h-12 w-12" alt="" />
-      <div className="relative z-10">
-        <h3 data-ppt-text>{item.title}</h3>
-        <p data-ppt-text>{item.body}</p>
+    <div data-ppt-item key={item.id} className="p-8 -m-8">
+      <div className="relative flex gap-5 rounded-3xl p-6">
+        <div data-ppt-item-bg className="absolute inset-0 rounded-3xl bg-white/10 shadow-2xl" />
+        <img data-ppt-bullet src={item.icon} className="relative z-10 h-12 w-12" alt="" />
+        <div className="relative z-10">
+          <h3 data-ppt-text>{item.title}</h3>
+          <p data-ppt-text>{item.body}</p>
+        </div>
       </div>
     </div>
   ))}
@@ -40,12 +42,14 @@ Use this when writing React slide components. Build rich visuals, but keep repea
 ```tsx
 <div data-ppt-group="card-grid" className="grid grid-cols-3 gap-6">
   {cards.map((card) => (
-    <article data-ppt-item key={card.id} className="relative rounded-3xl p-8">
-      <div data-ppt-item-bg className="absolute inset-0 rounded-3xl bg-white/10 shadow-2xl" />
-      <img data-ppt-bullet src={card.iconSrc} alt="" />
-      <h3 data-ppt-text>{card.title}</h3>
-      <p data-ppt-text>{card.body}</p>
-    </article>
+    <div data-ppt-item key={card.id} className="p-8 -m-8">
+      <article className="relative rounded-3xl p-8">
+        <div data-ppt-item-bg className="absolute inset-0 rounded-3xl bg-white/10 shadow-2xl" />
+        <img data-ppt-bullet src={card.iconSrc} alt="" />
+        <h3 data-ppt-text>{card.title}</h3>
+        <p data-ppt-text>{card.body}</p>
+      </article>
+    </div>
   ))}
 </div>
 ```

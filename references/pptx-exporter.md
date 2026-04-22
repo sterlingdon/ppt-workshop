@@ -7,7 +7,7 @@
 It extracts:
 
 - Slide background.
-- Legacy component rasters from `data-ppt-bg`.
+- Component rasters from `data-ppt-bg`.
 - Native text candidates from `data-ppt-text`.
 - Item-aware groups from `data-ppt-group`.
 - Item rasters from `data-ppt-item` or `data-ppt-item-bg`.
@@ -20,7 +20,7 @@ It extracts:
 It must preserve visual stacking:
 
 1. Background.
-2. Legacy raster components.
+2. Raster components.
 3. Group segments and tracks.
 4. Item rasters.
 5. Item-local native text.
