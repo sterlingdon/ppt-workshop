@@ -5,6 +5,7 @@ __pycache__/
 *.env
 image_cache/
 .superpowers/
+.worktrees/
 .env.json
 web/src/generated/slides/
 
