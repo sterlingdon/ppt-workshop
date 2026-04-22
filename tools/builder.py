@@ -63,12 +63,38 @@ TEXT_STYLE_JS = """el => {
     };
 }"""
 
+
+def should_skip_component_capture(component_box, slide_box, tolerance=1.0):
+    """Skip full-slide background layers; they are already captured as bg_path."""
+    return (
+        abs(component_box["x"] - slide_box["x"]) <= tolerance
+        and abs(component_box["y"] - slide_box["y"]) <= tolerance
+        and abs(component_box["width"] - slide_box["width"]) <= tolerance
+        and abs(component_box["height"] - slide_box["height"]) <= tolerance
+    )
+
+
+def should_hide_text_for_native_export(native_text_mode):
+    return (native_text_mode or "auto").strip().lower() != "skip"
+
+
+def cleanup_extracted_assets(assets_dir):
+    for pattern in (
+        "slide_*_bg.png",
+        "slide_*_comp_*.png",
+        "slide_*_group_*_item_*.png",
+    ):
+        for path in assets_dir.glob(pattern):
+            path.unlink()
+
+
 async def extract_layout_and_assets(web_dir="web", workspace=None, port=5173):
     if workspace is None:
         workspace = create_project_workspace("presentation")
 
     # 确保输出目录存在
     workspace.assets_dir.mkdir(parents=True, exist_ok=True)
+    cleanup_extracted_assets(workspace.assets_dir)
 
     # 隐式拉起 Vite 服务
     print(">>> [Phase 1] 正在启动 Vite 渲染器...")
@@ -122,6 +148,9 @@ async def extract_layout_and_assets(web_dir="web", workspace=None, port=5173):
                 # ------ STEP 1: 提取所有原生文本并隐身 ------
                 text_locators = await slide_loc.locator("[data-ppt-text]").all()
                 for txt_index, txt_loc in enumerate(text_locators):
+                    native_text_mode = await txt_loc.get_attribute("data-ppt-native-text")
+                    should_hide_text = should_hide_text_for_native_export(native_text_mode)
+
                     # 获取计算样式和坐标
                     box = await txt_loc.bounding_box()
                     if not box:
@@ -130,15 +159,17 @@ async def extract_layout_and_assets(web_dir="web", workspace=None, port=5173):
                     # 计算相对于当前 Slide 容器的坐标，彻底无视视口滚动或边距偏差
                     style = await txt_loc.evaluate(TEXT_STYLE_JS)
                     is_inside_item = await txt_loc.evaluate("el => Boolean(el.closest('[data-ppt-item]'))")
-                    if not is_inside_item:
+                    if should_hide_text and not is_inside_item:
                         slide_info["texts"].append({
                             "id": f"text_{slide_index}_{txt_index}",
                             "box": make_box(box, slide_box),
                             "style": style
                         })
 
-                    # 关键动作：隐掉文本，防止印到底图标上。使用 visibility 保证它绝对不会留有颜色残影，且不破坏周围流式布局！
-                    await txt_loc.evaluate("el => el.style.visibility = 'hidden'")
+                    # 关键动作：隐掉将转为原生 PPT 的文本，防止印到底图上。
+                    # data-ppt-native-text="skip" 的复杂视觉文本保留在局部 raster 中，保证高保真。
+                    if should_hide_text:
+                        await txt_loc.evaluate("el => el.style.visibility = 'hidden'")
 
                 group_locators = await slide_loc.locator("[data-ppt-group]").all()
                 for group_loc in group_locators:
@@ -151,11 +182,38 @@ async def extract_layout_and_assets(web_dir="web", workspace=None, port=5173):
                         }
                     """)
 
-                # ------ STEP 2: 先截全页底图（含卡片 box-shadow）------
-                # 必须在隐藏任何卡片之前截取，这样背景图里才能保留
-                # shadow-2xl / ring 等渲染在元素包围盒外侧的阴影效果。
-                # PPT 里：底图保留阴影 → 卡片覆层精确遮住卡片区域 → 阴影从两侧透出
+                # Standalone decorative components should not be baked into the slide bg,
+                # otherwise their raster copy and optional native text get stacked twice.
+                bg_locators = await slide_loc.locator("[data-ppt-bg]").all()
+                hidden_standalone_components = []
+                for bg_loc in bg_locators:
+                    is_inside_group = await bg_loc.evaluate("el => Boolean(el.closest('[data-ppt-group]'))")
+                    if is_inside_group:
+                        continue
+
+                    box = await bg_loc.bounding_box()
+                    if not box or should_skip_component_capture(box, slide_box):
+                        continue
+
+                    hidden_standalone_components.append(bg_loc)
+                    await bg_loc.evaluate("""
+                        el => {
+                            el.dataset.pptOriginalVisibility = el.style.visibility || '';
+                            el.style.visibility = 'hidden';
+                        }
+                    """)
+
+                # ------ STEP 2: 先截全页底图（只保留页面级氛围/光影）------
+                # 组件本体会后续单独截图；底图不再包含局部组件，避免重复叠加。
                 await slide_loc.screenshot(path=slide_info["bg_path"])
+
+                for bg_loc in hidden_standalone_components:
+                    await bg_loc.evaluate("""
+                        el => {
+                            el.style.visibility = el.dataset.pptOriginalVisibility || '';
+                            delete el.dataset.pptOriginalVisibility;
+                        }
+                    """)
 
                 # ------ STEP 2b: 提取 item-aware 组件组 -----------------
                 for group_index, group_loc in enumerate(group_locators):
@@ -188,8 +246,12 @@ async def extract_layout_and_assets(web_dir="web", workspace=None, port=5173):
                         item_texts = []
                         item_text_locators = await item_loc.locator("[data-ppt-text]").all()
                         for text_index, item_text_loc in enumerate(item_text_locators):
+                            native_text_mode = await item_text_loc.get_attribute("data-ppt-native-text")
+                            should_hide_text = should_hide_text_for_native_export(native_text_mode)
                             text_box = await item_text_loc.bounding_box()
                             if not text_box:
+                                continue
+                            if not should_hide_text:
                                 continue
                             style = await item_text_loc.evaluate(TEXT_STYLE_JS)
                             item_texts.append({
@@ -225,7 +287,6 @@ async def extract_layout_and_assets(web_dir="web", workspace=None, port=5173):
                     ))
 
                 # ------ STEP 3: 提取局部组件截图并隐身 ------
-                bg_locators = await slide_loc.locator("[data-ppt-bg]").all()
                 for bg_index, bg_loc in enumerate(bg_locators):
                     is_inside_group = await bg_loc.evaluate("el => Boolean(el.closest('[data-ppt-group]'))")
                     if is_inside_group:
@@ -233,6 +294,8 @@ async def extract_layout_and_assets(web_dir="web", workspace=None, port=5173):
 
                     box = await bg_loc.bounding_box()
                     if not box:
+                        continue
+                    if should_skip_component_capture(box, slide_box):
                         continue
 
                     comp_path = str(workspace.assets_dir / f"slide_{slide_index}_comp_{bg_index}.png")

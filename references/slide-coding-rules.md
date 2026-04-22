@@ -36,11 +36,20 @@ Visual fidelity is the product floor. Do not simplify visual design to make Powe
 | `data-ppt-native-text` | `auto`, `force`, `skip` | Controls native text export for a `data-ppt-text` element. |
 | `data-ppt-fallback` | `item-raster`, `group-raster`, `slide-raster` | Hints the safe fallback level. |
 
+## Raster And Native Text Contract
+
+- Full-slide `data-ppt-bg` is the base layer only; it is not captured again as a component.
+- Smaller standalone `data-ppt-bg` components are hidden before the base screenshot, then captured independently.
+- `data-ppt-text` defaults to native export and is hidden during raster capture.
+- `data-ppt-text data-ppt-native-text="skip"` stays visible in its local raster and is not exported as a native PPT text box.
+- Use `skip` for tiny labels, kicker pills, badges, chart tags, and text with critical CSS effects such as letter spacing, glow, gradient clipping, or blend modes.
+
 ## Non-Negotiable Rules
 
 - Do not bake item-specific bullets, cards, icons, timeline nodes, labels, or item shadows into the parent background.
 - Do not use `::before` or `::after` for item-specific visuals that should become independent PPT objects.
 - Keep `data-ppt-text` inside the relevant `data-ppt-item`.
+- Do not put `data-ppt-text` on a complex label unless you also mark it with `data-ppt-native-text="skip"`.
 - If a component cannot be itemized without visual risk, use raster fallback instead of reducing visual quality.
 
 ## Minimal Valid List

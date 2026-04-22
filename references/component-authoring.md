@@ -50,10 +50,28 @@ Use this when writing React slide components. Build rich visuals, but keep repea
 </div>
 ```
 
+## Detail Label Recipe
+
+Use this for kicker labels, chart tags, badges, and small decorative labels whose exact CSS treatment matters more than text editability.
+
+```tsx
+function Kicker({ children }: { children: React.ReactNode }) {
+  return (
+    <div data-ppt-bg className="inline-flex items-center gap-3 rounded-full border border-white/15 bg-white/5 px-5 py-2 text-sm font-bold uppercase tracking-[0.32em] text-cyan-300">
+      <span className="h-2 w-2 rounded-full bg-cyan-300 shadow-[0_0_18px_#22d3ee]" />
+      <span data-ppt-text data-ppt-native-text="skip">{children}</span>
+    </div>
+  )
+}
+```
+
+Do not export these labels as native PPT text unless the styling is plain. Letter spacing, glow, clipped gradients, blend modes, and tiny uppercase text are usually better kept inside the local raster.
+
 ## Authoring Checklist
 
 - Every repeatable structure uses `data-ppt-group`.
 - Every repeatable unit uses `data-ppt-item`.
 - Item text is nested inside the item.
 - Parent background contains only shared atmosphere or tracks.
+- Complex labels use `data-ppt-bg` plus `data-ppt-native-text="skip"` on inner text.
 - Visual richness is not reduced for editability.
