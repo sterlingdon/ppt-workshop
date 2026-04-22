@@ -1,0 +1,45 @@
+{
+  "project_id": "example-deck",
+  "review_type": "ai_lens_visual_review",
+  "gate_type": "ai_visual_quality_review",
+  "status": "blocked",
+  "review_assets": {
+    "full_deck_screenshot": "review/full_deck.png",
+    "slide_screenshots_dir": "review/slides"
+  },
+  "blocking_findings": 2,
+  "repair_log": [
+    {
+      "id": "V1",
+      "source_slide": 1,
+      "finding": "The slide is technically readable but has weak hierarchy and no clear focal point.",
+      "status": "open",
+      "changed_artifacts": [],
+      "evidence": ""
+    },
+    {
+      "id": "V2",
+      "source_slide": 1,
+      "finding": "The visual language does not reflect design_dna.json.",
+      "status": "open",
+      "changed_artifacts": [],
+      "evidence": ""
+    }
+  ],
+  "slides": [
+    {
+      "slide": 1,
+      "passed": false,
+      "visual_score": 5,
+      "findings": [
+        "The slide is technically readable but has weak hierarchy and no clear focal point.",
+        "The visual language does not reflect design_dna.json."
+      ],
+      "repairs": [
+        "Rebuild the title composition with a dominant focal region.",
+        "Apply the deck accent and card recipe consistently."
+      ]
+    }
+  ],
+  "notes": "Do not proceed to export until blocking visual findings are repaired and review screenshots are regenerated."
+}

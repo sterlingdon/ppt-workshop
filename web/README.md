@@ -16,7 +16,7 @@ This Vite app is the active visual renderer for the PPT skill.
 Agents should choose a preset first, choose one of its `slidePatterns`, then build slide components from its tokens and recipes instead of inventing a new visual system per slide.
 
 ```tsx
-import { getDeckStylePreset, styleVars } from './styles'
+import { getDeckStylePreset, styleVars } from '../../styles'
 
 const preset = getDeckStylePreset('aurora-borealis')
 
@@ -24,6 +24,8 @@ const preset = getDeckStylePreset('aurora-borealis')
   ...
 </div>
 ```
+
+This import path is for generated project slides because they are activated into `web/src/generated/slides/` before rendering. Tracked sample slides under `web/src/sample-slides/` use a different relative path.
 
 Available presets:
 
@@ -52,6 +54,7 @@ Use:
 ```bash
 python ../tools/ppt_workflow.py snapshot-slides --project <project-id>
 python ../tools/ppt_workflow.py activate --project <project-id>
+python ../tools/ppt_workflow.py review-screenshots --project <project-id>
 python ../tools/ppt_workflow.py build --project <project-id>
 ```
 

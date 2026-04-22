@@ -1,0 +1,31 @@
+{
+  "project_id": "example-deck",
+  "review_type": "ai_lens_visual_review",
+  "gate_type": "ai_visual_quality_review",
+  "status": "pass",
+  "review_assets": {
+    "full_deck_screenshot": "review/full_deck.png",
+    "slide_screenshots_dir": "review/slides"
+  },
+  "blocking_findings": 0,
+  "repair_log": [
+    {
+      "id": "V1",
+      "source_slide": 1,
+      "finding": "Opening slide lacked a strong focal point in the first review.",
+      "status": "resolved",
+      "changed_artifacts": ["slides/Slide_1.tsx", "review/slides/slide_01.png"],
+      "evidence": "Rebuilt the hero composition around a dominant title block and regenerated screenshots."
+    }
+  ],
+  "slides": [
+    {
+      "slide": 1,
+      "passed": true,
+      "visual_score": 9,
+      "findings": [],
+      "repairs": []
+    }
+  ],
+  "notes": "Engineering visual-validate also passed, but this file records the separate AI visual judgment."
+}

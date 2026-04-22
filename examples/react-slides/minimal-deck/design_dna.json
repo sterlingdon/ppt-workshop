@@ -1,0 +1,44 @@
+{
+  "source_skill": "ui-ux-pro-max",
+  "recommendation_summary": "Quiet editorial operations deck with warm paper background, deep green authority color, muted gold accents, and restrained rule lines.",
+  "preset": "editorial-ink",
+  "font_display": "Inter, ui-sans-serif, system-ui, sans-serif",
+  "font_body": "Inter, ui-sans-serif, system-ui, sans-serif",
+  "token_extensions": {
+    "--ppt-bg": "#F7F3EA",
+    "--ppt-surface": "#FFFFFF",
+    "--ppt-surface-strong": "#EDE6D8",
+    "--ppt-primary": "#2D5A4A",
+    "--ppt-secondary": "#6C7A62",
+    "--ppt-accent": "#C99A2E",
+    "--ppt-text": "#18211D",
+    "--ppt-muted": "#5D665F",
+    "--ppt-border": "#D8CCB8",
+    "--ppt-chart-1": "#2D5A4A",
+    "--ppt-chart-2": "#C99A2E",
+    "--ppt-chart-3": "#6C7A62"
+  },
+  "visual_language": {
+    "card_recipe": "white paper panels, 1px warm border, square corners, no glass or glow",
+    "heading_recipe": "heavy sans-serif title, deep green text, gold rule accent",
+    "accent_bar_recipe": "thin gold rule lines and small square markers",
+    "bg_decoration": "warm paper base with subtle grid and no gradient blobs",
+    "image_mood": ["editorial", "warm paper", "operations", "calm authority"]
+  },
+  "slide_pattern_assignments": {
+    "title": "ink-feature-story",
+    "card-grid": "ink-two-column-brief"
+  },
+  "consistency_rules": [
+    "Use token_extensions as CSS variable overrides on every slide root.",
+    "Do not use the preset default red accent when design_dna overrides --ppt-accent.",
+    "Do not hardcode visual colors directly in JSX; map ui-ux-pro-max colors into --ppt-* variables first."
+  ],
+  "visual_mandates": {
+    "min_ppt_bg_blocks_per_slide": 1,
+    "stats_slides_require": "native text plus simple rasterized chart blocks",
+    "concept_slides_require": "paper panels and rule-line diagrams",
+    "quote_slides_require": "large statement with gold rule",
+    "image_coverage_min": 0.25
+  }
+}

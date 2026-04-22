@@ -4,6 +4,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 import json
 from pathlib import Path
+import re
 
 try:
     from .presentation_workspace import PresentationWorkspace
@@ -36,7 +37,13 @@ def _check_slide_sources(workspace: PresentationWorkspace, report: QualityReport
         report.errors.append(f"slides directory must contain Slide_*.tsx files: {workspace.slides_dir}")
         return
 
+    index_content = (workspace.slides_dir / "index.ts").read_text(encoding="utf-8") if (workspace.slides_dir / "index.ts").is_file() else ""
+    imported_slides = set(re.findall(r"import\s+(Slide_\d+)\s+from\s+['\"]\.\/Slide_\d+['\"]", index_content))
+    export_match = re.search(r"export\s+default\s+\[(.*?)\]", index_content, re.DOTALL)
+    exported_slides = set(re.findall(r"\bSlide_\d+\b", export_match.group(1))) if export_match else set()
+
     has_text_marker = False
+    slide_stems = {slide_file.stem for slide_file in slide_files}
     for slide_file in slide_files:
         content = slide_file.read_text(encoding="utf-8")
         if "data-ppt-slide" not in content:
@@ -45,9 +52,88 @@ def _check_slide_sources(workspace: PresentationWorkspace, report: QualityReport
             has_text_marker = True
         if "getDeckStylePreset" not in content and "var(--ppt-" not in content:
             report.errors.append(f"{slide_file.name} must use a style preset or --ppt-* variables")
+        if "../../../web/src/styles" in content or "web/src/styles" in content:
+            report.errors.append(f"{slide_file.name} imports renderer styles through web/src; use ../../styles as shown in examples/react-slides/minimal-deck")
+        if "from '../styles'" in content or 'from "../styles"' in content:
+            report.errors.append(f"{slide_file.name} imports styles from ../styles; generated project slides should use ../../styles")
+        if slide_file.stem not in imported_slides:
+            report.errors.append(f"index.ts must import {slide_file.stem}")
+        if export_match and slide_file.stem not in exported_slides:
+            report.errors.append(f"index.ts must export {slide_file.stem}")
 
     if not has_text_marker:
         report.errors.append("deck must contain at least one data-ppt-text marker")
+    if index_content and not export_match:
+        report.errors.append("index.ts must export default an ordered slide array")
+    for imported in sorted(imported_slides - slide_stems):
+        report.errors.append(f"index.ts imports missing slide file: {imported}.tsx")
+    for exported in sorted(exported_slides - slide_stems):
+        report.errors.append(f"index.ts exports missing slide file: {exported}.tsx")
+
+
+def _load_json(path: Path, report: QualityReport, label: str) -> dict | None:
+    if not path.exists():
+        return None
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        report.errors.append(f"{label} is not valid JSON: {exc}")
+        return None
+
+
+def _blocking_count(data: dict) -> int:
+    value = data.get("blocking_findings", 0)
+    if isinstance(value, int):
+        return value
+    if isinstance(value, list):
+        return len(value)
+    return 0
+
+
+def _open_log_items(data: dict, field: str) -> list[dict]:
+    items = data.get(field, [])
+    if not isinstance(items, list):
+        return []
+    return [item for item in items if isinstance(item, dict) and item.get("status") != "resolved"]
+
+
+def _check_agent_reports(workspace: PresentationWorkspace, report: QualityReport, require_agent_reports: bool = False) -> None:
+    content_report = _load_json(workspace.project_dir / "content_quality_report.json", report, "content_quality_report.json")
+    if require_agent_reports and content_report is None:
+        report.errors.append("missing required content_quality_report.json; run the Content Quality Auditor before build")
+    if content_report:
+        status = content_report.get("status")
+        blocking = _blocking_count(content_report)
+        if not status and require_agent_reports:
+            report.errors.append("content_quality_report.json missing required status field")
+        if status and status != "pass":
+            report.errors.append(f"content_quality_report.json status is {status}; resolve required revisions before continuing")
+        if blocking > 0:
+            report.errors.append(f"content_quality_report.json has {blocking} blocking findings")
+        if content_report.get("required_revisions"):
+            report.errors.append("content_quality_report.json has unresolved required revisions")
+        if _open_log_items(content_report, "resolution_log"):
+            report.errors.append("content_quality_report.json has unresolved resolution log items")
+
+    visual_report = _load_json(workspace.project_dir / "visual_review_report.json", report, "visual_review_report.json")
+    if require_agent_reports and visual_report is None:
+        report.errors.append("missing required visual_review_report.json; run AI Lens Review before build")
+    if visual_report:
+        status = visual_report.get("status")
+        blocking = _blocking_count(visual_report)
+        if not status and require_agent_reports:
+            report.errors.append("visual_review_report.json missing required status field")
+        if visual_report.get("review_type") and visual_report.get("review_type") != "ai_lens_visual_review":
+            report.errors.append("visual_review_report.json review_type must be ai_lens_visual_review")
+        if status and status != "pass":
+            report.errors.append(f"visual_review_report.json status is {status}; AI visual review is not approved")
+        if blocking > 0:
+            report.errors.append(f"visual_review_report.json has {blocking} blocking findings")
+        failed_slides = [slide for slide in visual_report.get("slides", []) if isinstance(slide, dict) and not slide.get("passed", False)]
+        if failed_slides:
+            report.errors.append("visual_review_report.json has slides not passed")
+        if _open_log_items(visual_report, "repair_log"):
+            report.errors.append("visual_review_report.json has unresolved repair log items")
 
 
 def _resolve_manifest_path(workspace: PresentationWorkspace, raw_path: str) -> Path:
@@ -102,9 +188,14 @@ def _check_pptx(workspace: PresentationWorkspace, report: QualityReport) -> None
         report.errors.append(f"presentation.pptx exists but is empty: {workspace.pptx_path}")
 
 
-def validate_project(workspace: PresentationWorkspace, check_outputs: bool = True) -> QualityReport:
+def validate_project(
+    workspace: PresentationWorkspace,
+    check_outputs: bool = True,
+    require_agent_reports: bool = False,
+) -> QualityReport:
     report = QualityReport()
     _check_slide_sources(workspace, report)
+    _check_agent_reports(workspace, report, require_agent_reports=require_agent_reports)
     if check_outputs:
         _check_manifest_assets(workspace, report)
         _check_pptx(workspace, report)

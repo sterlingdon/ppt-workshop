@@ -1,0 +1,39 @@
+{
+  "project_id": "example-deck",
+  "review_type": "content_quality_audit",
+  "status": "pass",
+  "audience": "负责内容产品和增长决策的管理者",
+  "goal": "决定是否把 PPT 生成流程改为质量门驱动",
+  "core_thesis": "PPT 生成质量主要取决于前置判断，而不是导出阶段的补救。",
+  "deck_angle": "从工程流水线升级为编辑和设计共同驱动的生产流程。",
+  "must_emphasize": [
+    "内容审核必须阻断后续生成",
+    "AI 视觉审核和工程 validator 是两件事",
+    "React authoring 不负责重新写作"
+  ],
+  "must_cut": [
+    "流水账式复述原文",
+    "未经来源支持的新统计"
+  ],
+  "key_data_points": [],
+  "slide_worthy_arguments": [
+    {
+      "argument": "把质量判断前移可以减少返工。",
+      "why_it_matters_to_audience": "决策者关心稳定交付，而不是单次生成碰运气。",
+      "supporting_evidence": "来自本项目执行复盘。"
+    }
+  ],
+  "blocking_findings": 0,
+  "required_revisions": [],
+  "resolution_log": [
+    {
+      "id": "C1",
+      "source_finding": "Audience and decision context were too broad in the first audit.",
+      "status": "resolved",
+      "changed_artifacts": ["deck_state.json", "analysis.json", "content_quality_report.json"],
+      "evidence": "Audience narrowed to content product and growth decision-makers; thesis rewritten around quality gates."
+    }
+  ],
+  "resolution_notes": "No blocking content issues remain.",
+  "findings": []
+}
