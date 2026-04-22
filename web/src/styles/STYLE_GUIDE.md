@@ -23,3 +23,7 @@ Agents should not invent a complete visual language per deck. Choose one preset,
 - `data-ppt-text`: text that should become editable PowerPoint text.
 
 Do not put `data-ppt-bg` and `data-ppt-text` on the same element.
+
+## Item-Aware PPT Export
+
+Repeatable structures must use `data-ppt-group` and `data-ppt-item`. Read `references/slide-coding-rules.md` before authoring generated slides.

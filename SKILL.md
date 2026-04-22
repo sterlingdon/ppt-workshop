@@ -561,6 +561,24 @@ print(f'✓ outline.json 验证通过，共 {len(data[\"slides\"])} 张幻灯片
 
 ### ⚠️ 技术规范（违反会导致渲染失败）
 
+#### 规范零：先读取 Slide 编码规则 Reference（必须）
+
+在编写任何 React slide component 前，先读取以下 reference。`SKILL.md` 只保留流程和硬约束，细节以 reference 为准，避免主 skill 无限变长：
+
+1. `references/slide-coding-rules.md` — slide marker API 与编码规则
+2. `references/component-authoring.md` — list/timeline/card-grid 等组件写法
+3. `references/visual-fidelity.md` — 高保真优先级与 fallback 策略
+
+不要把可重复结构写成一个整体 `data-ppt-bg`。以下结构必须使用 `data-ppt-group` + `data-ppt-item`：
+
+- bullet list / numbered list
+- timeline / process / stepper
+- agenda rows
+- fact list
+- card grid
+
+父容器只放共享氛围、底纹、轨道；item-specific 的 bullet、icon、node、card、shadow、label 必须放进对应 `data-ppt-item`。
+
 #### 规范一：Import 路径（必须正确）
 
 ```tsx
