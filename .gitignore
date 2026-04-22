@@ -7,3 +7,10 @@ image_cache/
 .superpowers/
 .env.json
 web/src/generated/slides/
+
+# Playwright MCP logs and screenshots
+.playwright-mcp/
+
+# Temporary slide previews
+slide*.png
+ppt-preview*.png
