@@ -23,6 +23,8 @@
     "heading_recipe": "heavy sans-serif title, deep green text, gold rule accent",
     "accent_bar_recipe": "thin gold rule lines and small square markers",
     "bg_decoration": "warm paper base with subtle grid and no gradient blobs",
+    "diagram_recipe": "rule-line diagrams with labeled nodes and restrained gold emphasis",
+    "chart_recipe": "simple editorial charts with deep green primary data and gold highlight annotations",
     "image_mood": ["editorial", "warm paper", "operations", "calm authority"]
   },
   "slide_pattern_assignments": {
@@ -34,6 +36,18 @@
     "Do not use the preset default red accent when design_dna overrides --ppt-accent.",
     "Do not hardcode visual colors directly in JSX; map ui-ux-pro-max colors into --ppt-* variables first."
   ],
+  "type_scale": {
+    "title_px": "60-84",
+    "section_label_px": "18-24",
+    "body_px": "28-36",
+    "metric_px": "96-144"
+  },
+  "composition_rules": {
+    "outer_margin_px": "104-128",
+    "focal_point_rule": "Each slide uses either one dominant statement, one metric, or one diagram as the first-read element.",
+    "density_rule": "Use 3-5 primary content groups per slide; avoid uniform card grids unless the slide compares peers.",
+    "whitespace_rule": "Keep wide paper margins and separate evidence groups with rule lines, not heavy containers."
+  },
   "visual_mandates": {
     "min_ppt_bg_blocks_per_slide": 1,
     "stats_slides_require": "native text plus simple rasterized chart blocks",

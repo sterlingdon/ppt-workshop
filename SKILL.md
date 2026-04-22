@@ -14,10 +14,10 @@ Do not treat the CLI as an article-to-PPT generator or visual designer. The CLI 
 ## Read Only What You Need
 
 - Start every deck: read [`references/workflow.md`](references/workflow.md).
-- Before running any core agent role: read [`references/agent-prompts.md`](references/agent-prompts.md).
+- Before running any core agent role: read [`references/agent-prompts.md`](references/agent-prompts.md) and pass the relevant role prompt to the agent exactly enough that the agent can execute it. Do not assume the agent has already read this skill or its system prompt.
 - Before writing any artifact: use [`references/artifact-templates.md`](references/artifact-templates.md).
 - Before analysis/planning: read [`references/deck-brief.md`](references/deck-brief.md) and [`references/semantic-validation.md`](references/semantic-validation.md).
-- Before creating `design_dna.json`: invoke `ui-ux-pro-max` for design-system recommendations.
+- Before creating `design_recommendation.json` or `design_dna.json`: read [`references/ppt-visual-design.md`](references/ppt-visual-design.md), then invoke `ui-ux-pro-max` as a product/web design intelligence source for transferable visual principles, not as a request to build a website.
 - Before writing slides: first read and follow [`examples/react-slides/minimal-deck/README.md`](examples/react-slides/minimal-deck/README.md), then read [`references/slide-coding-rules.md`](references/slide-coding-rules.md), [`references/component-authoring.md`](references/component-authoring.md), and `web/src/styles/STYLE_GUIDE.md`.
 - Before visual repair/export: read [`references/visual-validation.md`](references/visual-validation.md), [`references/visual-fidelity.md`](references/visual-fidelity.md), and [`references/pptx-exporter.md`](references/pptx-exporter.md).
 - For implementation details only when blocked: read [`references/engineering.md`](references/engineering.md).
@@ -49,7 +49,7 @@ Required working contract:
 2. Extract clean article text into `article_text.md` and initialize `deck_state.json`.
 3. Run the **Content Quality Auditor**: read `deck_state.json`, create `analysis.json`, identify the audience, deck goal, thesis, must-emphasize facts, must-cut noise, data points, and slide-worthy arguments.
 4. Write `content_quality_report.json` using the report examples in `examples/reports/`; do not proceed unless it has `status: "pass"`, no blocking content findings, no required revisions, and all `resolution_log` items resolved. If the report requires revisions, update the content artifacts, record the fixes, and re-run the audit before handoff.
-5. Run the **PPT Generation Agent**: invoke `ui-ux-pro-max`, write `design_recommendation.json`, create `design_dna.json`, create `outline.json`, create `slide_blueprint.json`, then write React slides in `output/projects/<project-id>/slides/`.
+5. Run the **PPT Generation Agent**: provide the exact prompt from `references/agent-prompts.md`, read `references/ppt-visual-design.md`, invoke `ui-ux-pro-max`, write `design_recommendation.json`, create `design_dna.json`, create `outline.json`, create `slide_blueprint.json`, then write React slides in `output/projects/<project-id>/slides/`.
 6. Run structural validation.
 7. Run `python3 tools/ppt_workflow.py review-screenshots --project <project-id>` to create rendered review screenshots in `review/full_deck.png` and `review/slides/*.png`, then run the **Visual Review/Validation Agent**: inspect those screenshots with an AI visual lens, write `visual_review_report.json`, repair weak slides, record each repair in `repair_log`, regenerate screenshots, and repeat until there are no blocking design findings.
 8. Run browser engineering validation and repair until `visual_validation_report.json.summary.failed` is `0`.
@@ -91,8 +91,9 @@ python3 tools/ppt_workflow.py export --project <project-id>
 - Never start slide generation before the Content Quality Auditor has approved the deck angle and key points.
 - One deck, one visual system. Do not mix presets or invent unrelated styles per slide.
 - Use `design_dna.json` as the style contract.
-- `design_dna.json` must be grounded in `ui-ux-pro-max` recommendations, then mapped to the closest local renderer preset.
+- `design_dna.json` must be grounded in `ui-ux-pro-max` recommendations, then mapped to the closest local renderer preset. `ui-ux-pro-max` is used for cross-domain design judgment: hierarchy, layout, typography, color, spacing, chart language, and interface-level polish that transfer to PPT. It is not a signal to make a website or app.
 - Use the React slide examples as the source of truth for import paths, `index.ts`, and marker structure before relying on validators.
+- PPT visual craft is a gate, not decoration. Weak hierarchy, oversized/undersized type, monotonous templates, poor whitespace, or generic web-card layouts must be repaired before export even when validators pass.
 - Do not let React slide authoring become a second writing pass. If approved copy is wrong, revise `slide_blueprint.json` and invalidate downstream artifacts.
 - The rendered browser preview is the truth for both AI visual review and engineering validation.
 - Never equate `visual-validate` success with visual excellence.

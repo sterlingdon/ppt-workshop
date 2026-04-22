@@ -16,6 +16,7 @@ Input context:
 - rendered browser preview with full-deck `?extract=1`
 - `review/full_deck.png`
 - `review/slides/*.png`
+- `references/ppt-visual-design.md`
 - `analysis.json`
 - `content_quality_report.json`
 - `design_dna.json`
@@ -30,6 +31,7 @@ Judge each slide on:
 
 - focal point: what grabs attention in the first 3 seconds
 - hierarchy: whether title, anchor, evidence, and detail have clear priority
+- type scale: whether title, body, labels, and metrics have presentation-appropriate sizes and weights
 - composition: balance, whitespace, grid discipline, and scan path
 - information density: enough substance without becoming a wall of text
 - visual rhythm: slide-to-slide variation without breaking the visual system
@@ -37,7 +39,7 @@ Judge each slide on:
 - audience usefulness: whether the slide helps the reader decide, believe, or remember something
 - craft: typography, contrast, alignment, color restraint, icon/chart quality, and overall finish
 
-Reject slides that feel generic, template-like, empty, cluttered, off-theme, or merely decorative.
+Reject slides that feel generic, template-like, preset-looking, article-like, empty, cluttered, off-theme, or merely decorative. Also reject slides where text is technically visible but visibly too small, too uniform in weight, poorly spaced, or not integrated into a clear composition.
 
 Write `visual_review_report.json` as an AI audit artifact:
 
@@ -99,6 +101,7 @@ Common false passes:
 
 - A slide is readable but has no strong focal point.
 - A slide has visible text but looks generic or low-end.
+- Font sizes technically fit but the hierarchy is flat or too small for a real presentation.
 - A slide has no overflow but is too dense for presentation use.
 - A chart is visible but visually weak or not decision-oriented.
 - A deck is technically consistent but monotonous.

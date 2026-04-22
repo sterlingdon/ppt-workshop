@@ -124,11 +124,13 @@ When the auditor requests changes, keep the loop explicit:
 
 Raw design-intelligence output distilled from `ui-ux-pro-max`. This file preserves the external recommendation before it is mapped to local renderer presets.
 
+The `query` must make the adaptation explicit: use `ui-ux-pro-max` for transferable web/product design principles, then adapt them to a fixed 16:9 PowerPoint deck. Do not ask for a website or app layout.
+
 ```json
 {
   "project_id": "<project-id>",
   "source_skill": "ui-ux-pro-max",
-  "query": "",
+  "query": "Use ui-ux-pro-max for transferable web/product design principles, then adapt them to a 16:9 PowerPoint deck. Do not produce a website/app layout. Deck context: ...",
   "recommended_style": "",
   "rationale": "",
   "palette": {
@@ -144,6 +146,12 @@ Raw design-intelligence output distilled from `ui-ux-pro-max`. This file preserv
     "display": "",
     "body": "",
     "number": ""
+  },
+  "ppt_adaptation": {
+    "focal_point_strategy": "",
+    "type_scale_guidance": "",
+    "density_guidance": "",
+    "fixed_16_9_translation_notes": ""
   },
   "layout_guidance": [],
   "chart_guidance": [],
@@ -174,10 +182,24 @@ Raw design-intelligence output distilled from `ui-ux-pro-max`. This file preserv
     "heading_recipe": "",
     "accent_bar_recipe": "",
     "bg_decoration": "",
+    "diagram_recipe": "",
+    "chart_recipe": "",
     "image_mood": []
   },
   "slide_pattern_assignments": {},
   "consistency_rules": [],
+  "type_scale": {
+    "title_px": "56-88",
+    "section_label_px": "18-26",
+    "body_px": "28-38",
+    "metric_px": "88-180"
+  },
+  "composition_rules": {
+    "outer_margin_px": "96-140",
+    "focal_point_rule": "",
+    "density_rule": "",
+    "whitespace_rule": ""
+  },
   "visual_mandates": {
     "min_ppt_bg_blocks_per_slide": 1,
     "stats_slides_require": "",
@@ -189,6 +211,8 @@ Raw design-intelligence output distilled from `ui-ux-pro-max`. This file preserv
 ```
 
 Every non-empty `token_extensions` value must be reflected in React slide theme variables. The slide root should spread `styleVars(preset)` first, then spread the `token_extensions` override object so the ui-ux-pro-max recommendation controls the actual rendered deck.
+
+`type_scale` and `composition_rules` are required design decisions even if the exact numeric values vary by deck. They prevent agents from leaving font size, hierarchy, and spacing to improvised JSX.
 
 ## `outline.json`
 
@@ -294,6 +318,23 @@ Required before React slide authoring. This is the page-by-page build plan.
         "description": ""
       },
       "layout_pattern": "",
+      "visual_hierarchy": {
+        "primary_focus": "",
+        "secondary_focus": "",
+        "reading_order": []
+      },
+      "type_scale": {
+        "title_px": "",
+        "body_px": "",
+        "metric_px": "",
+        "label_px": ""
+      },
+      "composition": {
+        "outer_margin_px": "",
+        "whitespace_strategy": "",
+        "density_target": "",
+        "rhythm_notes": ""
+      },
       "data_ppt_requirements": {
         "needs_group": false,
         "needs_item_markers": false,
@@ -306,6 +347,8 @@ Required before React slide authoring. This is the page-by-page build plan.
 ```
 
 `locked_copy` is the source of truth for human-facing React slide text. `required_texts` may duplicate or flatten this copy for validation, but React slide code must not invent or rewrite core copy outside the blueprint. If the copy needs editorial repair, update `slide_blueprint.json` before changing `Slide_N.tsx`.
+
+`visual_hierarchy`, `type_scale`, and `composition` are required authoring inputs. A blueprint that only names a layout pattern is incomplete; it must tell the slide author what should dominate, how large the main text classes should be, and how dense the slide should feel.
 
 ## `visual_review_report.json`
 

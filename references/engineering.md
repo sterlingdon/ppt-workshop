@@ -109,9 +109,9 @@ const preset = getDeckStylePreset('bold-signal')
 <div style={styleVars(preset)} className="bg-[var(--ppt-bg)] text-[var(--ppt-text)]">
 ```
 
-Use `ui-ux-pro-max` before writing `design_dna.json`, save its distilled output as `design_recommendation.json`, then use `design_dna.json` to extend preset variables and lock deck-specific visual rules.
+Read `references/ppt-visual-design.md`, then use `ui-ux-pro-max` before writing `design_recommendation.json` or `design_dna.json`. The `ui-ux-pro-max` query must ask for transferable web/product design principles adapted to a fixed 16:9 PowerPoint deck, not a website/app layout. Save its distilled output as `design_recommendation.json`, then use `design_dna.json` to extend preset variables and lock deck-specific visual rules.
 
-The local preset is an implementation scaffold, not the design source. If `ui-ux-pro-max` recommends a different visual language, preserve that direction through `token_extensions`, `visual_language`, and `consistency_rules` while choosing the closest renderer preset.
+The local preset is an implementation scaffold, not the design source. If `ui-ux-pro-max` recommends a different visual language, preserve that direction through `token_extensions`, `visual_language`, `type_scale`, `composition_rules`, and `consistency_rules` while choosing the closest renderer preset.
 
 When `design_dna.json.token_extensions` overrides preset tokens, apply those variables after `styleVars(preset)`:
 

@@ -64,15 +64,18 @@ The recommendation must come from invoking or applying `ui-ux-pro-max` using the
 
 Must preserve the external design-intelligence step before the recommendation is mapped into the local renderer.
 
+`ui-ux-pro-max` is used here as a transferable design intelligence source, not as a literal website/app builder. The query must ask it to adapt web/product design principles to a fixed 16:9 PowerPoint deck and must not request navigation, forms, responsive app screens, hover states, or app interaction flows unless those are part of the slide subject.
+
 `design_recommendation.json` must define:
 
 - `project_id`
 - `source_skill`: `ui-ux-pro-max`
-- `query`: the deck-specific design request sent to the skill.
+- `query`: the deck-specific design request sent to the skill, including the fixed 16:9 PPT adaptation instruction.
 - `recommended_style`
 - `rationale`
 - `palette`
 - `typography`
+- `ppt_adaptation`: focal point strategy, type-scale guidance, density guidance, and fixed-slide translation notes.
 - `layout_guidance`
 - `chart_guidance`
 - `motion_guidance`
@@ -95,6 +98,8 @@ Use the external recommendation as the creative source of truth. The local rende
 - `visual_language`: card, heading, accent, background, and image/diagram recipes.
 - `slide_pattern_assignments`: which preset pattern each slide type should use.
 - `consistency_rules`: hard rules the slide author must not violate.
+- `type_scale`: deck-level title, label, body, and metric size ranges.
+- `composition_rules`: deck-level margin, focal point, density, and whitespace rules.
 - `visual_mandates`: minimum expectations such as metric anchors, chart treatment, or background blocks.
 
 Use `design_dna.json` before writing any slide JSX. It prevents the deck from becoming a collection of unrelated pages.
@@ -140,9 +145,14 @@ Each slide blueprint must define:
 - `must_not_include`
 - `visual_anchor`
 - `layout_pattern`
+- `visual_hierarchy`: primary focus, secondary focus, and reading order.
+- `type_scale`: intended title/body/metric/label sizing for that slide.
+- `composition`: outer margin, whitespace strategy, density target, and rhythm notes.
 - `data_ppt_requirements`
 
 The blueprint is the execution handoff to the slide author. It must include `locked_copy` for every human-facing string. `required_texts` may flatten that copy for validation, but the React author should render `locked_copy` rather than rewriting text while coding.
+
+The blueprint must not leave typography and composition to chance. If a slide has no clear focal point, no type-scale plan, or only says "card grid" without priority, it is not ready for React authoring.
 
 ## Review Screenshots And `visual_review_report.json`
 

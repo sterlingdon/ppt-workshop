@@ -17,7 +17,7 @@ Do not import from `../../../web/src/styles/presets`, `web/src/styles`, or `../s
 - `Slide_1.tsx`: title slide with locked copy and a high-fidelity background region.
 - `Slide_2.tsx`: card list with `data-ppt-group`, `data-ppt-item`, `data-ppt-item-bg`, and native text markers.
 - `Slide_3.tsx`: local preset plus `design_dna.token_extensions` override from ui-ux-pro-max recommendations.
-- `design_dna.json`: example output from the ui-ux-pro-max → design DNA step, including `token_extensions`.
+- `design_dna.json`: example output from the ui-ux-pro-max → design DNA step, including `token_extensions`, visual recipes, type scale, and composition rules.
 - `index.ts`: imports and exports every slide in order.
 
 ## Authoring Rules
@@ -27,7 +27,9 @@ Do not import from `../../../web/src/styles/presets`, `web/src/styles`, or `../s
 - Use `getDeckStylePreset()` and `styleVars(preset)` on each slide root.
 - Use CSS variables such as `var(--ppt-bg)`, `var(--ppt-text)`, and `var(--ppt-accent)` for deck styling.
 - Treat the local preset as a renderer scaffold. If ui-ux-pro-max recommends custom colors or typography, write them into `design_dna.json.token_extensions` and spread those variables after `styleVars(preset)`.
+- Treat ui-ux-pro-max as transferable design intelligence for a PPT deck. Apply its hierarchy, palette, typography, spacing, and chart guidance to fixed 16:9 slides; do not turn slides into website/app screens.
 - Put every human-facing text string in `slide_blueprint.json.locked_copy` first.
+- Before JSX, decide each slide's focal point, type scale, whitespace strategy, and density in `slide_blueprint.json`.
 - React slide code may arrange, split, emphasize, and wrap locked copy, but it must not rewrite facts, numbers, titles, entities, or conclusions.
 - Use `data-ppt-text` for text that should become editable PowerPoint text.
 - Use `data-ppt-bg` for visual regions that should be preserved as raster.
