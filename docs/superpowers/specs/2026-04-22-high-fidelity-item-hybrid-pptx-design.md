@@ -73,6 +73,195 @@ New markers introduce item-level structure:
 - `data-ppt-track`: shared timeline or process track.
 - `data-ppt-segment`: independently sliced connector segment between items.
 
+## Agent Authoring Requirements
+
+The skill must teach slide-building agents how to create export-friendly React components. Without these authoring rules, agents will keep producing old-style slides where repeatable structures are baked into a large `data-ppt-bg` screenshot.
+
+These rules should be added to `SKILL.md` and the frontend style guide during implementation.
+
+### Required Rule: Repeatable UI Must Be Marked As Groups And Items
+
+Any repeatable visual structure must use `data-ppt-group` and `data-ppt-item`.
+
+This includes:
+
+- Bullet lists.
+- Numbered lists.
+- Timeline nodes.
+- Process or stepper items.
+- Agenda rows.
+- Fact cards.
+- Card grid cells.
+
+Agents must not create a list, timeline, or process flow as one monolithic `data-ppt-bg` block if users may need to add, delete, or copy individual items later.
+
+### Required Rule: Do Not Bake Item Visuals Into Parent Backgrounds
+
+For item-aware components, parent containers may contain only:
+
+- Overall atmosphere.
+- Shared background texture.
+- Shared track or rail.
+- Decorative elements that are not tied to item count.
+
+Parent containers must not contain item-specific bullets, icons, numbers, nodes, labels, cards, or per-item shadows. Those must live inside `data-ppt-item` or item children.
+
+Bad pattern:
+
+```tsx
+<div data-ppt-bg="true">
+  <DecorativeBulletListBackground count={items.length} />
+  {items.map((item) => (
+    <span data-ppt-text>{item.text}</span>
+  ))}
+</div>
+```
+
+Good pattern:
+
+```tsx
+<div data-ppt-group="list">
+  {items.map((item) => (
+    <div data-ppt-item key={item.id}>
+      <div data-ppt-item-bg />
+      <img data-ppt-bullet src={item.icon} />
+      <span data-ppt-text>{item.text}</span>
+    </div>
+  ))}
+</div>
+```
+
+### Required Rule: Use Real DOM Elements For Exportable Parts
+
+Exportable bullets, icons, nodes, connector segments, and item backgrounds must be real DOM elements. Agents should not use CSS pseudo-elements like `::before` or `::after` for any item-specific visual that should survive as an independent PPT object.
+
+Allowed:
+
+```tsx
+<span data-ppt-bullet className="h-3 w-3 rounded-full bg-white" />
+```
+
+Avoid for exportable item visuals:
+
+```css
+li::before {
+  content: "";
+  width: 12px;
+  height: 12px;
+  border-radius: 9999px;
+}
+```
+
+Pseudo-elements are acceptable only for purely decorative effects that can safely remain in a raster fallback.
+
+### Required Rule: Item Text Should Stay Inside The Item
+
+Text belonging to an item should be nested inside that item and marked with `data-ppt-text`.
+
+```tsx
+<div data-ppt-item>
+  <div data-ppt-item-bg />
+  <h3 data-ppt-text>{item.title}</h3>
+  <p data-ppt-text>{item.body}</p>
+</div>
+```
+
+This lets the exporter attach native text overlays to the same item coordinate system.
+
+### Required Rule: Timeline Connectors Must Be Segmentable
+
+Timeline and process components should not draw all connectors as one inseparable SVG unless that connector can remain after deleting any item.
+
+Preferred structure:
+
+```tsx
+<div data-ppt-group="timeline">
+  {items.map((item, index) => (
+    <div data-ppt-item key={item.id}>
+      {index > 0 && <div data-ppt-segment />}
+      <div data-ppt-bullet data-ppt-node />
+      <h3 data-ppt-text>{item.title}</h3>
+    </div>
+  ))}
+</div>
+```
+
+If the timeline visual uses a complex SVG track, the track can remain as `data-ppt-track`, but item-specific nodes and labels must still be separate item children.
+
+### Required Rule: Prefer Item-Level Raster Fidelity Over Native Reconstruction
+
+Agents should continue using visually rich CSS, SVG, images, blur, and shadows, but the repeated unit must be isolatable.
+
+The correct authoring mindset is:
+
+- Build beautiful React visuals as before.
+- Wrap repeatable units in export markers.
+- Keep item-specific visuals inside each item.
+- Let the exporter screenshot each item when native reconstruction would be risky.
+
+Agents should not simplify visuals just to make components native PPT shapes. Visual fidelity remains the product floor.
+
+### Component Recipes For Agents
+
+List recipe:
+
+```tsx
+<div data-ppt-group="list" className="space-y-5">
+  {items.map((item) => (
+    <div data-ppt-item key={item.id} className="relative flex gap-5 rounded-3xl">
+      <div data-ppt-item-bg className="absolute inset-0 rounded-3xl bg-white/10 shadow-2xl" />
+      <img data-ppt-bullet src={item.icon} className="relative z-10 h-12 w-12" />
+      <div className="relative z-10">
+        <h3 data-ppt-text>{item.title}</h3>
+        <p data-ppt-text>{item.body}</p>
+      </div>
+    </div>
+  ))}
+</div>
+```
+
+Timeline recipe:
+
+```tsx
+<div data-ppt-group="timeline" className="relative">
+  <div data-ppt-track className="absolute left-0 right-0 top-1/2 h-1 rounded-full bg-white/20" />
+  {items.map((item, index) => (
+    <div data-ppt-item key={item.id} className="relative">
+      {index > 0 && <div data-ppt-segment className="absolute -left-12 top-1/2 h-1 w-12 bg-white/40" />}
+      <div data-ppt-bullet data-ppt-node className="h-8 w-8 rounded-full bg-white shadow-xl" />
+      <h3 data-ppt-text>{item.title}</h3>
+      <p data-ppt-text>{item.body}</p>
+    </div>
+  ))}
+</div>
+```
+
+Card grid recipe:
+
+```tsx
+<div data-ppt-group="card-grid" className="grid grid-cols-3 gap-6">
+  {cards.map((card) => (
+    <article data-ppt-item key={card.id} className="relative rounded-3xl">
+      <div data-ppt-item-bg className="absolute inset-0 rounded-3xl bg-white/10 shadow-2xl" />
+      <img data-ppt-bullet src={card.iconSrc} alt="" />
+      <h3 data-ppt-text>{card.title}</h3>
+      <p data-ppt-text>{card.body}</p>
+    </article>
+  ))}
+</div>
+```
+
+### Agent Self-Check Before Build
+
+Before running `ppt_workflow.py build`, the agent should check:
+
+- Every repeatable structure has `data-ppt-group`.
+- Every repeatable item has `data-ppt-item`.
+- Item-specific bullets, icons, nodes, and cards are not drawn in the parent background.
+- Item text is nested inside the item and marked with `data-ppt-text`.
+- Timeline nodes and labels are separate from the shared track.
+- Visual richness has not been reduced for editability.
+
 Example list:
 
 ```tsx
