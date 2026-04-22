@@ -79,6 +79,18 @@ The skill must teach slide-building agents how to create export-friendly React c
 
 These rules should be added to `SKILL.md` and the frontend style guide during implementation.
 
+`SKILL.md` must not keep growing without structure. The implementation should move detailed authoring rules into a standard skill reference architecture so agents can use the skill smoothly without reading a very long monolithic instruction file.
+
+Recommended documentation split:
+
+- `SKILL.md`: short orchestration workflow, hard constraints, and links to references.
+- `references/component-authoring.md`: how agents write React components for high-fidelity item export.
+- `references/export-markers.md`: marker contract and examples.
+- `references/visual-fidelity.md`: fallback policy and visual quality rules.
+- `references/pptx-exporter.md`: builder/exporter behavior and troubleshooting.
+
+`SKILL.md` should tell agents which reference to read at each stage instead of embedding every detail inline.
+
 ### Required Rule: Repeatable UI Must Be Marked As Groups And Items
 
 Any repeatable visual structure must use `data-ppt-group` and `data-ppt-item`.
