@@ -85,11 +85,42 @@ Recommended documentation split:
 
 - `SKILL.md`: short orchestration workflow, hard constraints, and links to references.
 - `references/component-authoring.md`: how agents write React components for high-fidelity item export.
+- `references/slide-coding-rules.md`: canonical React slide coding rules, marker API, allowed attributes, and examples.
 - `references/export-markers.md`: marker contract and examples.
 - `references/visual-fidelity.md`: fallback policy and visual quality rules.
 - `references/pptx-exporter.md`: builder/exporter behavior and troubleshooting.
 
 `SKILL.md` should tell agents which reference to read at each stage instead of embedding every detail inline.
+
+`references/slide-coding-rules.md` is the most important authoring reference. It must be written as an API contract for agents, not as general prose. For each supported marker or attribute it should document:
+
+- Purpose.
+- Allowed element types.
+- Required parent or child relationships.
+- Exporter behavior.
+- Visual fidelity considerations.
+- Common mistakes.
+- Minimal valid example.
+- Preferred production example.
+
+The reference should include at least these fields:
+
+| Marker or attribute | Purpose |
+| --- | --- |
+| `data-ppt-slide` | Marks one slide root and defines the extraction coordinate system. |
+| `data-ppt-bg` | Marks a high-fidelity raster region that is not item-aware. |
+| `data-ppt-text` | Marks text that should become a native PowerPoint text box when safe. |
+| `data-ppt-group` | Marks a repeatable structure such as list, timeline, stepper, agenda, fact-list, or card-grid. |
+| `data-ppt-item` | Marks one copyable/deletable unit inside a repeatable group. |
+| `data-ppt-item-bg` | Marks the visual background of one item when text is overlaid natively. |
+| `data-ppt-bullet` | Marks an item bullet, icon, image, number badge, or timeline node. |
+| `data-ppt-track` | Marks a shared timeline/process rail or track. |
+| `data-ppt-segment` | Marks a connector segment that can be captured independently. |
+| `data-ppt-raster-mode` | Optional override for raster behavior: `auto`, `force`, or `skip`. |
+| `data-ppt-native-text` | Optional text override: `auto`, `force`, or `skip`. |
+| `data-ppt-fallback` | Optional fallback hint: `item-raster`, `group-raster`, or `slide-raster`. |
+
+This coding-rules reference should be linked from Agent 4 instructions before any React component generation begins.
 
 ### Required Rule: Repeatable UI Must Be Marked As Groups And Items
 
