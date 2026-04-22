@@ -1,6 +1,8 @@
 import asyncio
 import argparse
 import json
+import os
+import signal
 import subprocess
 import time
 from playwright.async_api import async_playwright
@@ -23,7 +25,8 @@ async def extract_layout_and_assets(web_dir="web", workspace=None, port=5173):
         ["npm", "run", "dev", "--", "--port", str(port)],
         cwd=str(web_dir),
         stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE
+        stderr=subprocess.PIPE,
+        start_new_session=True,  # new process group → killpg cleans up all Vite children
     )
 
     # 给 Vite 几秒钟启动时间
@@ -81,13 +84,52 @@ async def extract_layout_and_assets(web_dir="web", workspace=None, port=5173):
 
                     style = await txt_loc.evaluate("""el => {
                         const s = window.getComputedStyle(el);
+
+                        // Walk the DOM tree to collect per-run styles (handles <br> and <span> color/weight overrides)
+                        const runs = [];
+                        function walk(node, inherited) {
+                            if (node.nodeType === 3) {
+                                const t = node.textContent;
+                                if (t) runs.push({ text: t, style: { ...inherited } });
+                            } else if (node.nodeName === 'BR') {
+                                runs.push({ text: '\\n', style: { ...inherited } });
+                            } else if (node.nodeType === 1) {
+                                const cs = window.getComputedStyle(node);
+                                const cur = {
+                                    color:              cs.color,
+                                    fontWeight:         cs.fontWeight,
+                                    fontSize:           cs.fontSize,
+                                    fontFamily:         cs.fontFamily,
+                                    fontStyle:          cs.fontStyle,
+                                    textDecorationLine: cs.textDecorationLine,
+                                };
+                                for (const c of node.childNodes) walk(c, cur);
+                            }
+                        }
+                        const rootRun = {
+                            color:              s.color,
+                            fontWeight:         s.fontWeight,
+                            fontSize:           s.fontSize,
+                            fontFamily:         s.fontFamily,
+                            fontStyle:          s.fontStyle,
+                            textDecorationLine: s.textDecorationLine,
+                        };
+                        for (const c of el.childNodes) walk(c, rootRun);
+
                         return {
-                            fontSize:   s.fontSize,
-                            fontFamily: s.fontFamily,
-                            color:      s.color,   // raw computed color (rgb/rgba/oklch/oklab)
-                            fontWeight: s.fontWeight,
-                            textAlign:  s.textAlign,
-                            text:       el.innerText
+                            fontSize:           s.fontSize,
+                            fontFamily:         s.fontFamily,
+                            color:              s.color,
+                            fontWeight:         s.fontWeight,
+                            textAlign:          s.textAlign,
+                            text:               runs.map(r => r.text).join('') || el.innerText,
+                            backgroundColor:    s.backgroundColor,
+                            borderRadius:       s.borderRadius,
+                            paddingTop:         s.paddingTop,
+                            paddingBottom:      s.paddingBottom,
+                            paddingLeft:        s.paddingLeft,
+                            paddingRight:       s.paddingRight,
+                            runs:               runs.length > 0 ? runs : null,
                         };
                     }""")
 
@@ -141,11 +183,18 @@ async def extract_layout_and_assets(web_dir="web", workspace=None, port=5173):
             print(f">>> [Phase 3] 提取成功，布局清单写入 {workspace.manifest_path}")
 
     finally:
-        vite_process.terminate()
+        # Kill the process group so Vite's forked child processes are cleaned up too
+        try:
+            os.killpg(os.getpgid(vite_process.pid), signal.SIGTERM)
+        except Exception:
+            vite_process.terminate()
         try:
             vite_process.wait(timeout=5)
         except subprocess.TimeoutExpired:
-            vite_process.kill()
+            try:
+                os.killpg(os.getpgid(vite_process.pid), signal.SIGKILL)
+            except Exception:
+                vite_process.kill()
             vite_process.wait(timeout=5)
 
 
