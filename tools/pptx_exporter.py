@@ -160,6 +160,91 @@ def build_pptx(manifest_path, output_path):
         if css_align in ("right", "end"): return PP_ALIGN.RIGHT
         return PP_ALIGN.LEFT
 
+    def _add_text(slide, txt, offset_x=0, offset_y=0):
+        box = txt["box"]
+        style = txt["style"]
+        text_content = style.get("text", "").strip()
+        if not text_content:
+            return
+
+        x_emu = int((box["x"] + offset_x) * SCALE)
+        y_emu = int((box["y"] + offset_y) * SCALE)
+        h_emu = int(box["height"] * SCALE)
+
+        raw_font_px = parse_px(style.get("fontSize", "16px"))
+        exact_w_emu = int(box["width"] * SCALE)
+        # Subtract CSS padding from height before single-line check: labels have
+        # vertical padding that inflates bbox height past the threshold.
+        pad_v_px = (parse_px(style.get("paddingTop", "0px"))
+                    + parse_px(style.get("paddingBottom", "0px")))
+        content_h_emu = h_emu - int(pad_v_px * SCALE)
+        is_singleline = content_h_emu <= int(raw_font_px * SCALE * 1.8)
+        align_css = style.get("textAlign", "left")
+
+        # Background fill shape for labels/tags.
+        bg_color_str = style.get("backgroundColor", "")
+        has_bg = not is_transparent_color(bg_color_str)
+        if has_bg:
+            bg_r, bg_g, bg_b = parse_rgb(bg_color_str)
+            br_str = style.get("borderRadius", "0px")
+            has_radius = br_str and br_str not in ("0px", "0%", "")
+            shape_type = (MSO_AUTO_SHAPE_TYPE.ROUNDED_RECTANGLE
+                          if has_radius else MSO_AUTO_SHAPE_TYPE.RECTANGLE)
+            bg_shape = slide.shapes.add_shape(shape_type, x_emu, y_emu, exact_w_emu, h_emu)
+            bg_shape.fill.solid()
+            bg_shape.fill.fore_color.rgb = RGBColor(bg_r, bg_g, bg_b)
+            bg_shape.line.fill.background()
+
+        # Labels: never expand width. Plain text: expand non-center single-line
+        # boxes to absorb font-metric differences.
+        if has_bg or not is_singleline:
+            w_emu = exact_w_emu
+            word_wrap = not is_singleline
+        else:
+            if align_css == "center":
+                w_emu = exact_w_emu
+            else:
+                max_w = int(prs.slide_width) - x_emu
+                w_emu = min(int(exact_w_emu * 1.4), max_w)
+            word_wrap = False
+
+        tx_box = slide.shapes.add_textbox(x_emu, y_emu, w_emu, h_emu)
+        tf = tx_box.text_frame
+        tf.margin_top = int(parse_px(style.get("paddingTop", "0px")) * SCALE)
+        tf.margin_bottom = int(parse_px(style.get("paddingBottom", "0px")) * SCALE)
+        tf.margin_left = int(parse_px(style.get("paddingLeft", "0px")) * SCALE)
+        tf.margin_right = int(parse_px(style.get("paddingRight", "0px")) * SCALE)
+        tf.word_wrap = word_wrap
+        if has_bg:
+            tf.vertical_anchor = MSO_ANCHOR.MIDDLE
+
+        runs_data = style.get("runs")
+        if runs_data:
+            paragraphs = []
+            cur = []
+            for run_item in runs_data:
+                if run_item["text"] == "\n":
+                    paragraphs.append(cur)
+                    cur = []
+                elif run_item["text"]:
+                    cur.append(run_item)
+            if cur:
+                paragraphs.append(cur)
+
+            for para_idx, para_runs in enumerate(paragraphs):
+                p = tf.paragraphs[0] if para_idx == 0 else tf.add_paragraph()
+                p.alignment = _pptx_align(align_css)
+                for run_item in para_runs:
+                    run = p.add_run()
+                    run.text = run_item["text"]
+                    _apply_run_style(run, run_item.get("style", {}), style)
+        else:
+            tf.text = text_content
+            p = tf.paragraphs[0]
+            p.alignment = _pptx_align(align_css)
+            run = p.runs[0]
+            _apply_run_style(run, style, style)
+
     for slide_data in data.get("slides", []):
         idx = slide_data["index"] + 1
         print(f"[*] 正在编排幻灯片第 {idx} 页...")
@@ -181,100 +266,39 @@ def build_pptx(manifest_path, output_path):
                 int(box["height"] * SCALE),
             )
 
-        # ── 3. 原生可编辑文字层 ──────────────────────────────────────
+        # ── 3. Item-aware groups ────────────────────────────────────────
+        for group in slide_data.get("groups", []):
+            for segment in group.get("segments", []):
+                raster = segment.get("raster", {})
+                path = raster.get("path")
+                box = segment.get("box")
+                if path and box:
+                    slide.shapes.add_picture(
+                        path,
+                        int(box["x"] * SCALE),
+                        int(box["y"] * SCALE),
+                        int(box["width"] * SCALE),
+                        int(box["height"] * SCALE),
+                    )
+
+            for item in group.get("items", []):
+                box = item["box"]
+                raster = item.get("raster", {})
+                path = raster.get("path")
+                if path:
+                    slide.shapes.add_picture(
+                        path,
+                        int(box["x"] * SCALE),
+                        int(box["y"] * SCALE),
+                        int(box["width"] * SCALE),
+                        int(box["height"] * SCALE),
+                    )
+                for txt in item.get("texts", []):
+                    _add_text(slide, txt, offset_x=box["x"], offset_y=box["y"])
+
+        # ── 4. 原生可编辑文字层 ──────────────────────────────────────
         for txt in slide_data.get("texts", []):
-            box   = txt["box"]
-            style = txt["style"]
-            text_content = style.get("text", "").strip()
-            if not text_content:
-                continue
-
-            x_emu = int(box["x"]     * SCALE)
-            y_emu = int(box["y"]     * SCALE)
-            h_emu = int(box["height"]* SCALE)
-
-            raw_font_px   = parse_px(style.get("fontSize", "16px"))
-            exact_w_emu   = int(box["width"] * SCALE)
-            # Subtract CSS padding from height before single-line check: labels have
-            # vertical padding that inflates bbox height past the threshold.
-            pad_v_px = (parse_px(style.get("paddingTop", "0px"))
-                        + parse_px(style.get("paddingBottom", "0px")))
-            content_h_emu = h_emu - int(pad_v_px * SCALE)
-            is_singleline = content_h_emu <= int(raw_font_px * SCALE * 1.8)
-            align_css     = style.get("textAlign", "left")
-
-            # ── 3a. Background fill shape for labels/tags ────────────────
-            # Always use exact_w_emu so the shape matches the original element size.
-            bg_color_str = style.get("backgroundColor", "")
-            has_bg = not is_transparent_color(bg_color_str)
-            if has_bg:
-                bg_r, bg_g, bg_b = parse_rgb(bg_color_str)
-                br_str = style.get("borderRadius", "0px")
-                has_radius = br_str and br_str not in ("0px", "0%", "")
-                shape_type = (MSO_AUTO_SHAPE_TYPE.ROUNDED_RECTANGLE
-                              if has_radius else MSO_AUTO_SHAPE_TYPE.RECTANGLE)
-                bg_shape = slide.shapes.add_shape(shape_type, x_emu, y_emu, exact_w_emu, h_emu)
-                bg_shape.fill.solid()
-                bg_shape.fill.fore_color.rgb = RGBColor(bg_r, bg_g, bg_b)
-                bg_shape.line.fill.background()
-
-            # Labels: never expand width (word_wrap=False already prevents wrapping).
-            # Plain text: expand non-center single-line boxes to absorb font-metric differences.
-            if has_bg or not is_singleline:
-                w_emu = exact_w_emu
-                word_wrap = not is_singleline
-            else:
-                if align_css == "center":
-                    w_emu = exact_w_emu
-                else:
-                    max_w = int(prs.slide_width) - x_emu
-                    w_emu = min(int(exact_w_emu * 1.4), max_w)
-                word_wrap = False
-
-            tx_box = slide.shapes.add_textbox(x_emu, y_emu, w_emu, h_emu)
-            tf = tx_box.text_frame
-            tf.margin_top    = int(parse_px(style.get("paddingTop",    "0px")) * SCALE)
-            tf.margin_bottom = int(parse_px(style.get("paddingBottom", "0px")) * SCALE)
-            tf.margin_left   = int(parse_px(style.get("paddingLeft",   "0px")) * SCALE)
-            tf.margin_right  = int(parse_px(style.get("paddingRight",  "0px")) * SCALE)
-            tf.word_wrap = word_wrap
-            if has_bg:
-                tf.vertical_anchor = MSO_ANCHOR.MIDDLE
-
-            runs_data = style.get("runs")
-
-            if runs_data:
-                # ── Rich text: split runs by \n into paragraphs ──────────
-                paragraphs = []
-                cur = []
-                for run_item in runs_data:
-                    if run_item["text"] == "\n":
-                        paragraphs.append(cur)
-                        cur = []
-                    else:
-                        if run_item["text"]:  # skip empty text nodes
-                            cur.append(run_item)
-                if cur:
-                    paragraphs.append(cur)
-
-                for para_idx, para_runs in enumerate(paragraphs):
-                    if para_idx == 0:
-                        p = tf.paragraphs[0]
-                    else:
-                        p = tf.add_paragraph()
-                    p.alignment = _pptx_align(align_css)
-
-                    for run_item in para_runs:
-                        run = p.add_run()
-                        run.text = run_item["text"]
-                        _apply_run_style(run, run_item.get("style", {}), style)
-            else:
-                # ── Legacy: single run from plain text ───────────────────
-                tf.text = text_content
-                p = tf.paragraphs[0]
-                p.alignment = _pptx_align(align_css)
-                run = p.runs[0]
-                _apply_run_style(run, style, style)
+            _add_text(slide, txt)
 
     prs.save(output_path)
     print(f"[*] 转化完成！保存至: {output_path}")

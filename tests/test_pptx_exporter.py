@@ -84,3 +84,61 @@ def test_manifest_export_accepts_bg_images(tmp_path):
     prs = Presentation(output)
     slide = prs.slides[0]
     assert len(slide.shapes) > 0
+
+
+def test_manifest_export_adds_item_raster_and_item_text(tmp_path):
+    from PIL import Image
+
+    item_img = tmp_path / "item.png"
+    Image.new("RGBA", (400, 120), color=(20, 20, 20, 255)).save(str(item_img))
+
+    manifest = write_manifest(
+        tmp_path,
+        [
+            {
+                "index": 0,
+                "texts": [],
+                "components": [],
+                "groups": [
+                    {
+                        "id": "group_0_0",
+                        "kind": "list",
+                        "mode": "item-hybrid",
+                        "box": {"x": 100, "y": 100, "width": 500, "height": 200},
+                        "items": [
+                            {
+                                "id": "item_0_0_0",
+                                "mode": "item-hybrid",
+                                "box": {"x": 120, "y": 140, "width": 400, "height": 120},
+                                "raster": {"path": str(item_img), "mode": "item"},
+                                "texts": [
+                                    {
+                                        "box": {"x": 80, "y": 30, "width": 250, "height": 40},
+                                        "style": {
+                                            "text": "独立列表项",
+                                            "fontSize": "24px",
+                                            "fontFamily": "Inter, sans-serif",
+                                            "color": "rgb(255,255,255)",
+                                            "fontWeight": "700",
+                                            "textAlign": "left",
+                                        },
+                                    }
+                                ],
+                                "bullets": [],
+                            }
+                        ],
+                        "segments": [],
+                    }
+                ],
+                "bg_path": None,
+            }
+        ],
+    )
+
+    output = str(tmp_path / "item_group.pptx")
+    build_pptx(str(manifest), output)
+    prs = Presentation(output)
+    slide = prs.slides[0]
+    all_text = " ".join(shape.text for shape in slide.shapes if shape.has_text_frame)
+    assert "独立列表项" in all_text
+    assert len(slide.shapes) >= 2
