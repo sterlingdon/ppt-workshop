@@ -21,6 +21,10 @@ class PresentationWorkspace:
     pptx_path: Path
     html_dir: Path
     metadata_path: Path
+    slide_blueprint_path: Path
+    visual_asset_plan_path: Path
+    visual_asset_manifest_path: Path
+    human_feedback_log_path: Path
 
     def to_json_dict(self) -> dict[str, str]:
         return {key: str(value) for key, value in asdict(self).items()}
@@ -60,6 +64,10 @@ def get_project_workspace(project_id: str, root_dir: str | Path = DEFAULT_PROJEC
         pptx_path=project_dir / "presentation.pptx",
         html_dir=project_dir / "presentation-html",
         metadata_path=project_dir / "project.json",
+        slide_blueprint_path=project_dir / "slide_blueprint.json",
+        visual_asset_plan_path=project_dir / "visual_asset_plan.json",
+        visual_asset_manifest_path=project_dir / "visual_asset_manifest.json",
+        human_feedback_log_path=project_dir / "human_feedback_log.json",
     )
 
 

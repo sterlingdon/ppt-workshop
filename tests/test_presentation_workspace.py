@@ -35,6 +35,20 @@ def test_create_project_workspace_builds_isolated_paths(tmp_path):
     assert workspace.metadata_path.is_file()
 
 
+def test_create_project_workspace_includes_visual_asset_contract_paths(tmp_path):
+    workspace = create_project_workspace(
+        "Visual Asset Deck",
+        root_dir=tmp_path,
+        project_id="20260423-090000-visual-asset-deck",
+    )
+
+    assert workspace.project_dir == tmp_path / "20260423-090000-visual-asset-deck"
+    assert workspace.slide_blueprint_path == workspace.project_dir / "slide_blueprint.json"
+    assert workspace.visual_asset_plan_path == workspace.project_dir / "visual_asset_plan.json"
+    assert workspace.visual_asset_manifest_path == workspace.project_dir / "visual_asset_manifest.json"
+    assert workspace.human_feedback_log_path == workspace.project_dir / "human_feedback_log.json"
+
+
 def test_workspace_rejects_path_traversal_ids(tmp_path):
     try:
         create_project_workspace("Bad", root_dir=tmp_path, project_id="../bad")
