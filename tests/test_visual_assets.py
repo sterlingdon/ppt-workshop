@@ -5,6 +5,7 @@ import sys
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from tools.presentation_workspace import create_project_workspace
+import tools.visual_assets as visual_assets
 from tools.visual_assets import (
     build_asset_plan_entry,
     build_visual_asset_manifest,
@@ -200,3 +201,95 @@ def test_build_visual_asset_manifest_marks_unconfigured_image_search_as_blocked(
     asset = manifest["assets"][0]
     assert asset["review_status"] == "blocked"
     assert asset["selected_asset"]["status"] == "unavailable"
+
+
+def test_build_visual_asset_manifest_fetches_configured_image_search_candidates(tmp_path, monkeypatch):
+    workspace = create_project_workspace("Search Deck", root_dir=tmp_path, project_id="search-deck")
+    write_blueprint(
+        workspace,
+        [
+            {
+                "slide": 1,
+                "title": "Real Classroom",
+                "critical_visual": False,
+                "asset_intent": {
+                    "visual_role": "supporting_evidence",
+                    "asset_goal": "Show a real classroom context.",
+                    "candidate_asset_types": ["image_search"],
+                    "must_show": ["teacher", "student"],
+                    "must_avoid": ["diagram"],
+                    "wow_goal": "photo credibility",
+                },
+            }
+        ],
+    )
+    build_visual_asset_plan(workspace)
+
+    def fake_search(*, query, candidate_count, workspace_root, asset_prefix):
+        path = workspace_root / f"{asset_prefix}.jpg"
+        path.write_bytes(b"img")
+        return [
+            {
+                "candidate_id": "search-1",
+                "path": path.relative_to(workspace.project_dir).as_posix(),
+                "status": "ready",
+                "score": 8.9,
+                "source_provider": "unsplash",
+                "license_metadata": {"provider": "unsplash"},
+                "resolution_metadata": {"width": 1600, "height": 900},
+            }
+        ]
+
+    monkeypatch.setattr(visual_assets, "search_image_candidates", fake_search)
+
+    manifest = build_visual_asset_manifest(workspace)
+
+    asset = manifest["assets"][0]
+    assert asset["review_status"] == "approved"
+    assert asset["selected_asset"]["source_provider"] == "unsplash"
+
+
+def test_build_visual_asset_manifest_fetches_configured_generated_images(tmp_path, monkeypatch):
+    workspace = create_project_workspace("Hero Deck", root_dir=tmp_path, project_id="hero-deck")
+    write_blueprint(
+        workspace,
+        [
+            {
+                "slide": 1,
+                "title": "AI Teaching Future",
+                "critical_visual": True,
+                "asset_intent": {
+                    "visual_role": "hero_anchor",
+                    "asset_goal": "Create a premium hero visual for future teaching.",
+                    "candidate_asset_types": ["image_generation"],
+                    "must_show": ["teacher", "AI", "classroom"],
+                    "must_avoid": ["stock-photo look"],
+                    "wow_goal": "hero atmosphere",
+                },
+            }
+        ],
+    )
+    build_visual_asset_plan(workspace)
+
+    def fake_generate(*, prompt, candidate_count, workspace_root, asset_prefix):
+        path = workspace_root / f"{asset_prefix}.png"
+        path.write_bytes(b"png")
+        return [
+            {
+                "candidate_id": "gen-1",
+                "path": path.relative_to(workspace.project_dir).as_posix(),
+                "status": "ready",
+                "score": 9.1,
+                "source_provider": "gemini",
+                "license_metadata": {"provider": "gemini"},
+                "resolution_metadata": {"width": 1024, "height": 1024},
+            }
+        ]
+
+    monkeypatch.setattr(visual_assets, "generate_image_candidates", fake_generate)
+
+    manifest = build_visual_asset_manifest(workspace)
+
+    asset = manifest["assets"][0]
+    assert asset["review_status"] == "approved"
+    assert asset["selected_asset"]["source_provider"] == "gemini"

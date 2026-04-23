@@ -1,11 +1,29 @@
 from __future__ import annotations
 
 import json
-import math
 import os
 import re
 from html import escape
 from pathlib import Path
+
+try:
+    from .visual_asset_providers import (
+        IMAGE_GENERATION_PROVIDER_ENV,
+        SEARCH_PROVIDER_ENV,
+        ProviderRequestError,
+        ProviderUnavailableError,
+        generate_image_candidates,
+        search_image_candidates,
+    )
+except ImportError:
+    from visual_asset_providers import (
+        IMAGE_GENERATION_PROVIDER_ENV,
+        SEARCH_PROVIDER_ENV,
+        ProviderRequestError,
+        ProviderUnavailableError,
+        generate_image_candidates,
+        search_image_candidates,
+    )
 
 
 CRITICAL_REVIEW_CANDIDATE_COUNT = 5
@@ -17,17 +35,6 @@ ROUTE_PRIORITY = [
     "image_generation",
     "none",
 ]
-
-SEARCH_PROVIDER_ENV = {
-    "unsplash": "UNSPLASH_ACCESS_KEY",
-    "pexels": "PEXELS_API_KEY",
-    "pixabay": "PIXABAY_API_KEY",
-}
-IMAGE_GENERATION_PROVIDER_ENV = {
-    "qwen": "QWEN_IMAGE_API_KEY",
-    "wanx": "WANX_API_KEY",
-    "gemini": "GEMINI_API_KEY",
-}
 
 
 def _load_json(path: Path) -> dict:
@@ -290,6 +297,51 @@ def _select_best_candidate(candidates: list[dict]) -> dict:
     return max(candidates, key=lambda item: item.get("score", 0.0))
 
 
+def _normalize_candidate_paths(workspace, candidates: list[dict]) -> list[dict]:
+    normalized = []
+    for candidate in candidates:
+        entry = dict(candidate)
+        local_path = entry.get("local_path")
+        if local_path:
+            entry["path"] = _relative_asset_path(workspace, Path(local_path))
+            entry.pop("local_path", None)
+        normalized.append(entry)
+    return normalized
+
+
+def _build_remote_candidates(workspace, slide_entry: dict, slide_meta: dict, slot: dict, route: str, asset_intent: dict) -> tuple[list[dict], dict, str, str]:
+    query = _asset_query(slide_meta, asset_intent)
+    asset_prefix = f"slide_{slide_entry['slide']:02d}_{slot['slot']}_{'search' if route == 'image_search' else 'generated'}"
+    try:
+        if route == "image_search":
+            candidates = search_image_candidates(
+                query=query,
+                candidate_count=slot["candidate_count"],
+                workspace_root=workspace.assets_dir,
+                asset_prefix=asset_prefix,
+            )
+        else:
+            candidates = generate_image_candidates(
+                prompt=query,
+                candidate_count=slot["candidate_count"],
+                workspace_root=workspace.assets_dir,
+                asset_prefix=asset_prefix,
+            )
+    except (ProviderUnavailableError, ProviderRequestError) as exc:
+        blocked = {
+            "candidate_id": f"{slide_entry['slide']}-{slot['slot']}-{route}-unavailable",
+            "status": "unavailable",
+            "reason": str(exc),
+            "query": query,
+        }
+        return [], blocked, "blocked", str(exc)
+
+    normalized_candidates = _normalize_candidate_paths(workspace, candidates)
+    selected = _select_best_candidate(normalized_candidates)
+    rationale = f"Selected the highest-scoring remote {route} candidate for slide {slide_entry['slide']}."
+    return normalized_candidates, selected, "approved", rationale
+
+
 def build_visual_asset_manifest(workspace) -> dict:
     plan = _load_json(workspace.visual_asset_plan_path) if workspace.visual_asset_plan_path.exists() else build_visual_asset_plan(workspace)
     blueprint = load_slide_blueprint(workspace)
@@ -313,23 +365,23 @@ def build_visual_asset_manifest(workspace) -> dict:
                 candidate_assets = _build_chart_candidates(workspace, slide_meta, slot, asset_intent)
                 selected_asset = _select_best_candidate(candidate_assets)
             elif route == "image_search":
-                candidate_assets, selected_asset, review_status = _build_remote_placeholder(
+                candidate_assets, selected_asset, review_status, selection_rationale = _build_remote_candidates(
+                    workspace,
+                    slide_entry,
                     slide_meta,
                     slot,
                     route,
-                    SEARCH_PROVIDER_ENV,
                     asset_intent,
                 )
-                selection_rationale = "Blocked until an image-search provider key is configured." if review_status == "blocked" else "Provider route prepared."
             elif route == "image_generation":
-                candidate_assets, selected_asset, review_status = _build_remote_placeholder(
+                candidate_assets, selected_asset, review_status, selection_rationale = _build_remote_candidates(
+                    workspace,
+                    slide_entry,
                     slide_meta,
                     slot,
                     route,
-                    IMAGE_GENERATION_PROVIDER_ENV,
                     asset_intent,
                 )
-                selection_rationale = "Blocked until an image-generation provider key is configured." if review_status == "blocked" else "Provider route prepared."
             else:
                 candidate_assets = []
                 selected_asset = {"status": "not_required"}
@@ -342,14 +394,14 @@ def build_visual_asset_manifest(workspace) -> dict:
                 "slot": slot["slot"],
                 "asset_type": route,
                 "source_type": source_type,
-                "source_provider": source_provider,
+                "source_provider": selected_asset.get("source_provider", source_provider),
                 "prompt_or_query": _asset_query(slide_meta, asset_intent),
                 "candidate_assets": candidate_assets,
                 "selected_asset": selected_asset,
                 "selection_rationale": selection_rationale,
                 "review_status": review_status,
-                "license_metadata": {},
-                "resolution_metadata": {"candidate_count": len(candidate_assets)},
+                "license_metadata": selected_asset.get("license_metadata", {}),
+                "resolution_metadata": {"candidate_count": len(candidate_assets), **selected_asset.get("resolution_metadata", {})},
                 "rollback_scope": slide_meta.get("rollback_scope_default", "slide_local"),
             }
             assets.append(asset)

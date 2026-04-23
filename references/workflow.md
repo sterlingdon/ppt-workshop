@@ -268,7 +268,7 @@ Must do:
 - `validate`: checks slide sources and marker basics. It does not judge narrative or design quality.
 - `review-screenshots`: activates project slides and writes rendered screenshots for AI Lens Review.
 - `asset-plan`: writes the current `visual_asset_plan.json` artifact for the project.
-- `asset-manifest`: writes the current `visual_asset_manifest.json` artifact for the project and emits local SVG candidates where applicable.
+- `asset-manifest`: writes the current `visual_asset_manifest.json` artifact for the project, emits local SVG/chart candidates where applicable, and can fetch remote search or generated images when provider credentials are configured.
 - `log-feedback`: normalizes natural-language human feedback into `human_feedback_log.json`.
 - `visual-validate`: activates project slides, opens the browser preview, checks visible text, clipping, coverage, and overflow, then writes `visual_validation_report.json`. It is an engineering render gate, not a design critic, and does not satisfy the AI Lens Review.
 - `build`: activates slides, requires passed content and AI visual gate reports, runs engineering validation, extracts layout/assets, exports PPTX and the Vite static-site directory, and validates final outputs.
@@ -279,6 +279,16 @@ Must do:
 - `export-html`: activates project slides and builds the complete `presentation-html/` Vite static-site directory.
 
 `review-screenshots`, `visual-validate`, `extract`, and `build` manage the preview server internally. They reuse an open server on the requested port when available and stop only the server they started themselves.
+
+## Provider Environment Variables
+
+- Search providers: `UNSPLASH_ACCESS_KEY`, `PEXELS_API_KEY`, `PIXABAY_API_KEY`
+- Optional search-provider override: `VISUAL_ASSET_SEARCH_PROVIDER`
+- Image generation providers: `GEMINI_API_KEY`
+- Optional image-generation model override: `GEMINI_IMAGE_MODEL`
+- Optional image-generation provider override: `VISUAL_ASSET_IMAGE_PROVIDER`
+
+When no supported provider is configured, `asset-manifest` must leave the affected asset slot in a blocked state instead of inventing success.
 
 ## Invalidation Rules
 
