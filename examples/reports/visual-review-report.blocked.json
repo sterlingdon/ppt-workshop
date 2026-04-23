@@ -7,6 +7,16 @@
     "full_deck_screenshot": "review/full_deck.png",
     "slide_screenshots_dir": "review/slides"
   },
+  "review_context": {
+    "context_sources": [
+      "analysis.json",
+      "design_dna.json",
+      "outline.json",
+      "slide_blueprint.json"
+    ],
+    "rubric_version": "visual_review_rubric_v1",
+    "critical_slide_policy_version": "critical_visual_policy_v1"
+  },
   "review_capability": {
     "method": "vision_model",
     "image_input": true,
@@ -38,6 +48,20 @@
       "slide": 1,
       "passed": false,
       "visual_score": 5,
+      "visual_craft_score": 5.5,
+      "strategic_clarity_score": 6.1,
+      "criteria_scores": {
+        "focal_point": 4,
+        "hierarchy": 5,
+        "composition": 5
+      },
+      "hard_blockers": [
+        "The visual language does not reflect design_dna.json."
+      ],
+      "critical_visual": true,
+      "wow_passed": false,
+      "review_scope": "slide_local",
+      "rollback_recommendation": "rebuild slide composition and visual language",
       "findings": [
         "The slide is technically readable but has weak hierarchy and no clear focal point.",
         "The visual language does not reflect design_dna.json."

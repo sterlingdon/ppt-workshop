@@ -195,6 +195,36 @@ def _check_visual_review_capability(
             report.errors.append(f"visual review inspected asset does not exist: {asset}")
 
 
+def _check_visual_review_context(visual_report: dict, report: QualityReport) -> None:
+    context = visual_report.get("review_context")
+    if not isinstance(context, dict):
+        report.errors.append("visual_review_report.json must record review_context for a passing AI visual gate")
+        return
+
+    sources = context.get("context_sources", [])
+    required_sources = {"analysis.json", "design_dna.json", "outline.json", "slide_blueprint.json"}
+    if not isinstance(sources, list) or not required_sources.issubset(set(sources)):
+        report.errors.append("visual_review_report.json review_context.context_sources missing required artifact references")
+
+
+def _check_visual_review_slide_fields(visual_report: dict, report: QualityReport) -> None:
+    for slide in visual_report.get("slides", []):
+        if not isinstance(slide, dict):
+            continue
+        slide_number = slide.get("slide", "unknown")
+        if "visual_craft_score" not in slide or "strategic_clarity_score" not in slide:
+            report.errors.append(
+                f"visual_review_report.json slide {slide_number} must record visual_craft_score and strategic_clarity_score"
+            )
+        if slide.get("critical_visual") and slide.get("wow_passed") is not True:
+            report.errors.append(
+                f"visual_review_report.json slide {slide_number} is critical_visual but wow_passed is not true"
+            )
+        hard_blockers = slide.get("hard_blockers", [])
+        if isinstance(hard_blockers, list) and hard_blockers:
+            report.errors.append(f"visual_review_report.json slide {slide_number} has hard blockers")
+
+
 def _check_agent_reports(workspace: PresentationWorkspace, report: QualityReport, require_agent_reports: bool = False) -> None:
     content_report = _load_json(workspace.project_dir / "content_quality_report.json", report, "content_quality_report.json")
     if require_agent_reports and content_report is None:
@@ -233,6 +263,8 @@ def _check_agent_reports(workspace: PresentationWorkspace, report: QualityReport
         if _open_log_items(visual_report, "repair_log"):
             report.errors.append("visual_review_report.json has unresolved repair log items")
         _check_visual_review_capability(workspace, visual_report, report, require_agent_reports)
+        _check_visual_review_context(visual_report, report)
+        _check_visual_review_slide_fields(visual_report, report)
 
 
 def _resolve_manifest_path(workspace: PresentationWorkspace, raw_path: str) -> Path:

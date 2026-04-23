@@ -59,8 +59,22 @@ def test_visual_review_schema_requires_review_capability():
         "review_type": "ai_lens_visual_review",
         "gate_type": "ai_visual_quality_review",
         "status": "pass",
+        "review_context": {
+            "context_sources": ["analysis.json", "design_dna.json", "outline.json", "slide_blueprint.json"],
+            "rubric_version": "visual_review_rubric_v1",
+            "critical_slide_policy_version": "critical_visual_policy_v1"
+        },
         "blocking_findings": 0,
-        "slides": [{"slide": 1, "passed": True, "visual_score": 8, "findings": [], "repairs": []}]
+        "slides": [{
+            "slide": 1,
+            "passed": True,
+            "visual_score": 8,
+            "visual_craft_score": 8.5,
+            "strategic_clarity_score": 8.5,
+            "findings": [],
+            "repairs": [],
+            "hard_blockers": []
+        }]
     }
     with pytest.raises(jsonschema.ValidationError):
         jsonschema.validate(data, schema)
@@ -72,6 +86,11 @@ def test_visual_review_schema_accepts_vision_review_evidence():
         "review_type": "ai_lens_visual_review",
         "gate_type": "ai_visual_quality_review",
         "status": "pass",
+        "review_context": {
+            "context_sources": ["analysis.json", "design_dna.json", "outline.json", "slide_blueprint.json"],
+            "rubric_version": "visual_review_rubric_v1",
+            "critical_slide_policy_version": "critical_visual_policy_v1"
+        },
         "review_assets": {
             "full_deck_screenshot": "review/full_deck.png",
             "slide_screenshots_dir": "review/slides"
@@ -84,7 +103,17 @@ def test_visual_review_schema_accepts_vision_review_evidence():
         },
         "blocking_findings": 0,
         "repair_log": [],
-        "slides": [{"slide": 1, "passed": True, "visual_score": 8, "findings": [], "repairs": []}]
+        "slides": [{
+            "slide": 1,
+            "passed": True,
+            "visual_score": 8,
+            "visual_craft_score": 8.7,
+            "strategic_clarity_score": 8.9,
+            "criteria_scores": {"focal_point": 9, "composition": 8},
+            "findings": [],
+            "repairs": [],
+            "hard_blockers": []
+        }]
     }
     jsonschema.validate(data, schema)
 

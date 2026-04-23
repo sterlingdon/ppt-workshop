@@ -60,3 +60,16 @@ def test_report_examples_use_required_gate_fields():
 
     visual_blocked = json.loads((EXAMPLE_REPORTS / "visual-review-report.blocked.json").read_text(encoding="utf-8"))
     assert any(item["status"] == "open" for item in visual_blocked["repair_log"])
+
+
+def test_visual_review_example_references_context_and_dual_scores():
+    visual = json.loads((EXAMPLE_REPORTS / "visual-review-report.pass.json").read_text(encoding="utf-8"))
+
+    assert visual["review_context"]["context_sources"] == [
+        "analysis.json",
+        "design_dna.json",
+        "outline.json",
+        "slide_blueprint.json",
+    ]
+    assert visual["slides"][0]["visual_craft_score"] >= 8.5
+    assert visual["slides"][0]["strategic_clarity_score"] >= 8.5

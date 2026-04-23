@@ -295,13 +295,28 @@ def test_quality_gate_accepts_passed_required_agent_reports(tmp_path):
   "review_type": "ai_lens_visual_review",
   "status": "pass",
   "blocking_findings": 0,
+  "review_context": {
+    "context_sources": ["analysis.json", "design_dna.json", "outline.json", "slide_blueprint.json"],
+    "rubric_version": "visual_review_rubric_v1",
+    "critical_slide_policy_version": "critical_visual_policy_v1"
+  },
   "review_capability": {
     "method": "vision_model",
     "image_input": true,
     "model": "vision-capable-model",
     "inspected_assets": ["review/full_deck.png", "review/slides/slide_01.png"]
   },
-  "slides": [{"slide": 1, "passed": true, "findings": [], "repairs": []}]
+  "slides": [{
+    "slide": 1,
+    "passed": true,
+    "visual_score": 9,
+    "visual_craft_score": 9.0,
+    "strategic_clarity_score": 9.0,
+    "criteria_scores": {"focal_point": 9, "composition": 9},
+    "hard_blockers": [],
+    "findings": [],
+    "repairs": []
+  }]
 }
 """.strip(),
         encoding="utf-8",
@@ -452,3 +467,28 @@ def test_quality_gate_rejects_passed_visual_report_with_open_repair_log_item(tmp
 
     assert not report.ok
     assert any("visual_review_report.json has unresolved repair log items" in error for error in report.errors)
+
+
+def test_quality_gate_rejects_passed_visual_report_without_dual_scores(tmp_path):
+    workspace = create_project_workspace("Dual Scores Missing", root_dir=tmp_path, project_id="dual-scores-missing")
+    (workspace.slides_dir / "Slide_1.tsx").write_text(VALID_SLIDE, encoding="utf-8")
+    write_index(workspace.slides_dir)
+    (workspace.project_dir / "review" / "slides").mkdir(parents=True)
+    (workspace.project_dir / "review" / "full_deck.png").write_bytes(b"png")
+    (workspace.project_dir / "review" / "slides" / "slide_01.png").write_bytes(b"png")
+    (workspace.project_dir / "content_quality_report.json").write_text(
+        '{"status":"pass","blocking_findings":0}',
+        encoding="utf-8",
+    )
+    (workspace.project_dir / "visual_review_report.json").write_text(
+        '{"review_type":"ai_lens_visual_review","status":"pass","blocking_findings":0,"review_capability":{"method":"vision_model","image_input":true,"inspected_assets":["review/full_deck.png"]},"slides":[{"slide":1,"passed":true,"visual_score":9,"findings":[],"repairs":[]}]}',
+        encoding="utf-8",
+    )
+
+    report = validate_project(workspace, require_agent_reports=True)
+
+    assert not report.ok
+    assert any(
+        "visual_review_report.json slide 1 must record visual_craft_score and strategic_clarity_score" in error
+        for error in report.errors
+    )
