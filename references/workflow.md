@@ -282,6 +282,7 @@ Must do:
 
 ## Provider Environment Variables
 
+- See the repo-root `.env.example` for a ready-to-fill template.
 - Search providers: `UNSPLASH_ACCESS_KEY`, `PEXELS_API_KEY`, `PIXABAY_API_KEY`
 - Optional search-provider override: `VISUAL_ASSET_SEARCH_PROVIDER`
 - Image generation providers: `GEMINI_API_KEY`

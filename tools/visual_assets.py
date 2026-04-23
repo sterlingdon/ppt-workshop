@@ -123,8 +123,10 @@ def _route_to_source(route: str) -> tuple[str, str]:
 
 
 def _first_configured_provider(provider_map: dict[str, str]) -> str | None:
-    for provider, env_name in provider_map.items():
-        if os.getenv(env_name):
+    for provider, env_names in provider_map.items():
+        if isinstance(env_names, str):
+            env_names = (env_names,)
+        if any(os.getenv(env_name) for env_name in env_names):
             return provider
     return None
 
