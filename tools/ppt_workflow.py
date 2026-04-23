@@ -8,6 +8,7 @@ from pathlib import Path
 try:
     from .builder import extract_layout_and_assets
     from .deck_sources import activate_project_slides, snapshot_active_slides
+    from .html_exporter import build_html_presentation
     from .pptx_exporter import build_pptx
     from .presentation_workspace import create_project_workspace, get_project_workspace
     from .quality_gate import validate_project
@@ -15,6 +16,7 @@ try:
 except ImportError:
     from builder import extract_layout_and_assets
     from deck_sources import activate_project_slides, snapshot_active_slides
+    from html_exporter import build_html_presentation
     from pptx_exporter import build_pptx
     from presentation_workspace import create_project_workspace, get_project_workspace
     from quality_gate import validate_project
@@ -135,6 +137,24 @@ def cmd_export(args) -> int:
     return 0
 
 
+def cmd_export_html(args) -> int:
+    workspace, report = _activate_and_validate(args, check_outputs=False)
+    if not report.ok:
+        print(f"validation failed: {workspace.project_id}")
+        for error in report.errors:
+            print(f"error: {error}")
+        for warning in report.warnings:
+            print(f"warning: {warning}")
+        return 1
+    try:
+        build_html_presentation(args.web_dir, workspace.html_dir)
+    except RuntimeError as exc:
+        print(f"error: {exc}")
+        return 1
+    print(f"exported {workspace.html_dir / 'index.html'}")
+    return 0
+
+
 async def _build(args) -> int:
     workspace, preflight = _activate_and_validate(args, check_outputs=False, require_agent_reports=True)
     if not preflight.ok:
@@ -151,6 +171,9 @@ async def _build(args) -> int:
     export_code = cmd_export(args)
     if export_code != 0:
         return export_code
+    html_code = cmd_export_html(args)
+    if html_code != 0:
+        return html_code
     final_report = validate_project(workspace, require_agent_reports=True)
     if not final_report.ok:
         print(f"validation failed: {workspace.project_id}")
@@ -184,7 +207,8 @@ def build_parser() -> argparse.ArgumentParser:
         ("visual-validate", "Run browser-based HTML presentation checks.", cmd_visual_validate),
         ("extract", "Activate slides and extract layout manifest/assets.", cmd_extract),
         ("export", "Build PPTX from an existing layout manifest.", cmd_export),
-        ("build", "Activate, require agent gates, validate engineering render, extract, export, and validate outputs.", cmd_build),
+        ("export-html", "Activate project slides and build the complete Vite static-site directory.", cmd_export_html),
+        ("build", "Activate, require agent gates, validate engineering render, extract, export PPTX and HTML, and validate outputs.", cmd_build),
     ]:
         command = sub.add_parser(name, help=help_text)
         command.add_argument("--project", required=True)

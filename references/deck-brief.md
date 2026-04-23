@@ -179,4 +179,4 @@ This is not the Python engineering validator. It records AI visual judgment and 
 - If visual tone, theme tokens, signature visual moves, or layout recipes change, update `design_dna.json` and repair all affected slides.
 - If slide order, roles, or count changes, update `outline.json`, `slide_blueprint.json`, and affected slides.
 - If slide sources change, regenerate review screenshots, `visual_review_report.json`, engineering validation, manifest, assets, and PPTX.
-- After any contract change, rerun validation and rebuild the PPTX.
+- After any contract change, rerun validation and rebuild both the PPTX and `presentation-html/` static-site output.

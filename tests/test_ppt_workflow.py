@@ -102,6 +102,10 @@ def test_cli_build_runs_visual_validation(tmp_path, monkeypatch, capsys):
         calls.append("export")
         return 0
 
+    def fake_export_html(args):
+        calls.append("export-html")
+        return 0
+
     def fake_validate(workspace, check_outputs=True, require_agent_reports=False):
         calls.append(f"validate:{check_outputs}:{require_agent_reports}")
         return SimpleNamespace(ok=True, errors=[], warnings=[])
@@ -113,6 +117,7 @@ def test_cli_build_runs_visual_validation(tmp_path, monkeypatch, capsys):
     monkeypatch.setattr(ppt_workflow, "activate_project_slides", fake_activate)
     monkeypatch.setattr(ppt_workflow, "extract_layout_and_assets", fake_extract)
     monkeypatch.setattr(ppt_workflow, "cmd_export", fake_export)
+    monkeypatch.setattr(ppt_workflow, "cmd_export_html", fake_export_html)
     monkeypatch.setattr(ppt_workflow, "validate_project", fake_validate)
     monkeypatch.setattr(ppt_workflow, "_visual_validate", fake_visual_validate)
 
@@ -120,7 +125,39 @@ def test_cli_build_runs_visual_validation(tmp_path, monkeypatch, capsys):
 
     captured = capsys.readouterr()
     assert code == 0
-    assert calls == ["activate", "validate:False:True", "visual", "extract", "export", "validate:True:True"]
+    assert calls == ["activate", "validate:False:True", "visual", "extract", "export", "export-html", "validate:True:True"]
+
+
+def test_cli_export_html_writes_static_presentation(tmp_path, monkeypatch, capsys):
+    assert main(["init", "--name", "CLI Deck", "--project-root", str(tmp_path), "--project-id", "cli-deck"]) == 0
+    write_active_slides(tmp_path / "cli-deck" / "slides")
+    calls = []
+
+    def fake_build_html(web_dir, output_dir):
+        calls.append((web_dir, output_dir))
+        (output_dir / "assets").mkdir(parents=True, exist_ok=True)
+        (output_dir / "index.html").write_text("<!doctype html>", encoding="utf-8")
+        (output_dir / "assets" / "index.js").write_text("console.log('deck')", encoding="utf-8")
+        return output_dir
+
+    monkeypatch.setattr(ppt_workflow, "build_html_presentation", fake_build_html)
+
+    code = main([
+        "export-html",
+        "--project",
+        "cli-deck",
+        "--project-root",
+        str(tmp_path),
+        "--slides-dir",
+        str(tmp_path / "active-slides"),
+        "--web-dir",
+        "web",
+    ])
+
+    captured = capsys.readouterr()
+    assert code == 0
+    assert calls == [("web", tmp_path / "cli-deck" / "presentation-html")]
+    assert "presentation-html/index.html" in captured.out
 
 
 def test_cli_review_screenshots_command_writes_review_assets(tmp_path, monkeypatch, capsys):

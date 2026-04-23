@@ -27,6 +27,7 @@ def test_create_project_workspace_builds_isolated_paths(tmp_path):
     assert workspace.slides_dir == workspace.project_dir / "slides"
     assert workspace.manifest_path == workspace.project_dir / "layout_manifest.json"
     assert workspace.pptx_path == workspace.project_dir / "presentation.pptx"
+    assert workspace.html_dir == workspace.project_dir / "presentation-html"
     assert workspace.metadata_path == workspace.project_dir / "project.json"
 
     assert workspace.assets_dir.is_dir()

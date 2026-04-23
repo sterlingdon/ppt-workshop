@@ -152,6 +152,34 @@ def test_quality_gate_rejects_empty_manifest_slides(tmp_path):
     assert any("manifest contains no slides" in error for error in report.errors)
 
 
+def test_quality_gate_rejects_broken_html_presentation_output(tmp_path):
+    workspace = create_project_workspace("Broken HTML", root_dir=tmp_path, project_id="broken-html")
+    (workspace.slides_dir / "Slide_1.tsx").write_text(VALID_SLIDE, encoding="utf-8")
+    write_index(workspace.slides_dir)
+    workspace.html_dir.mkdir()
+
+    report = validate_project(workspace)
+
+    assert not report.ok
+    assert any("did not create a non-empty index.html" in error for error in report.errors)
+
+
+def test_quality_gate_rejects_html_presentation_with_missing_asset(tmp_path):
+    workspace = create_project_workspace("Broken HTML Asset", root_dir=tmp_path, project_id="broken-html-asset")
+    (workspace.slides_dir / "Slide_1.tsx").write_text(VALID_SLIDE, encoding="utf-8")
+    write_index(workspace.slides_dir)
+    workspace.html_dir.mkdir()
+    (workspace.html_dir / "index.html").write_text(
+        '<!doctype html><script type="module" src="./assets/missing.js"></script>',
+        encoding="utf-8",
+    )
+
+    report = validate_project(workspace)
+
+    assert not report.ok
+    assert any("assets/missing.js" in error for error in report.errors)
+
+
 def test_quality_gate_rejects_wrong_renderer_style_import(tmp_path):
     workspace = create_project_workspace("Bad Import Deck", root_dir=tmp_path, project_id="bad-import")
     (workspace.slides_dir / "Slide_1.tsx").write_text(

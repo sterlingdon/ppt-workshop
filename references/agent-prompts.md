@@ -227,7 +227,7 @@ Failure behavior:
 - If Python engineering validation passes but a slide looks weak, keep repairing.
 - If engineering validation fails, fix missing, hidden, clipped, covered, or overflowing content.
 - If you repair a visual finding, record the changed artifacts and evidence in repair_log before requesting re-review.
-- If a repair changes slide sources, regenerate review/full_deck.png and review/slides/*.png before re-reviewing. Treat visual_review_report.json, visual_validation_report.json, layout_manifest.json, assets, and presentation.pptx as stale.
+- If a repair changes slide sources, regenerate review/full_deck.png and review/slides/*.png before re-reviewing. Treat visual_review_report.json, visual_validation_report.json, layout_manifest.json, assets, presentation.pptx, and presentation-html/ as stale.
 ```
 
 ## Handoff Checklist

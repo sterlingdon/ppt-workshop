@@ -5,11 +5,11 @@ description: Use when the user wants to convert an article, URL, PDF, research n
 
 # Article → PPT Skill
 
-This skill turns source material into a presentation by building a project workspace, writing high-fidelity React slides, using AI visual judgment to improve the rendered deck, running engineering checks, and exporting a PPTX.
+This skill turns source material into a presentation by building a project workspace, writing high-fidelity React slides, using AI visual judgment to improve the rendered deck, running engineering checks, and exporting both a PPTX and a Vite-built static HTML presentation directory.
 
 ## Operating Rule
 
-Do not treat the CLI as an article-to-PPT generator or visual designer. The CLI manages project workspaces, validates existing React slides, checks engineering visibility/overflow issues, extracts layout, and exports PPTX. The agent is responsible for content analysis, deck planning, design direction, React slide authoring, AI visual review, and repair loops.
+Do not treat the CLI as an article-to-PPT generator or visual designer. The CLI manages project workspaces, validates existing React slides, checks engineering visibility/overflow issues, extracts layout, and exports PPTX plus the static HTML asset directory. The agent is responsible for content analysis, deck planning, design direction, React slide authoring, AI visual review, and repair loops.
 
 ## Read Only What You Need
 
@@ -42,7 +42,8 @@ Required working contract:
 - `visual_review_report.json`: AI visual review and repair audit. This is required for quality even though the CLI does not create it.
 - `visual_validation_report.json`: engineering visibility/overflow gate result.
 - `layout_manifest.json`: extracted slide layout and assets.
-- `presentation.pptx`: final deliverable.
+- `presentation.pptx`: final PowerPoint deliverable.
+- `presentation-html/`: final Vite static site output, including `index.html` and referenced assets, for browser review and PPTX-vs-HTML visual comparison.
 
 ## Smooth Execution Path
 
@@ -55,7 +56,7 @@ Required working contract:
 7. Run `python3 tools/ppt_workflow.py review-screenshots --project <project-id>` to create rendered review screenshots in `review/full_deck.png` and `review/slides/*.png`, then activate the **Visual Review/Validation Agent** role prompt and set `deck_state.json.active_role` to `visual_review_validation_agent`: inspect those screenshots with an AI visual lens, write `visual_review_report.json`, repair weak slides, record each repair in `repair_log`, regenerate screenshots, and repeat until there are no blocking design findings.
 8. Run browser engineering validation and repair until `visual_validation_report.json.summary.failed` is `0`.
 9. Build/export the deck.
-10. Verify `presentation.pptx` exists, is non-empty, and was rebuilt from the approved slides.
+10. Verify `presentation.pptx` and the complete `presentation-html/` static site exist, are non-empty, and were rebuilt from the approved slides.
 
 ## Commands
 
@@ -76,6 +77,7 @@ python3 tools/ppt_workflow.py activate --project <project-id>
 python3 tools/ppt_workflow.py snapshot-slides --project <project-id>
 python3 tools/ppt_workflow.py extract --project <project-id>
 python3 tools/ppt_workflow.py export --project <project-id>
+python3 tools/ppt_workflow.py export-html --project <project-id>
 ```
 
 ## Quality Gates
@@ -86,7 +88,7 @@ python3 tools/ppt_workflow.py export --project <project-id>
 - Source gate: `validate` must pass before export. It checks slide sources and marker basics; it does not judge deck quality.
 - AI visual gate: the agent must inspect rendered slides and reject pages that are technically valid but visually weak, generic, sparse, cluttered, off-theme, or not useful to the audience. Record the review and resolved repair loop in `visual_review_report.json`.
 - Engineering browser gate: `visual-validate` must pass with `summary.failed == 0`. This is not a visual-quality pass and does not replace `visual_review_report.json`.
-- Export gate: run `build` after content and AI visual gates pass; final PPTX must be generated from the approved React slides.
+- Export gate: run `build` after content and AI visual gates pass; final PPTX and complete static HTML asset directory must be generated from the approved React slides.
 
 ## Non-Negotiables
 

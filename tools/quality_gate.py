@@ -7,8 +7,10 @@ from pathlib import Path
 import re
 
 try:
+    from .html_exporter import validate_static_html_output
     from .presentation_workspace import PresentationWorkspace
 except ImportError:
+    from html_exporter import validate_static_html_output
     from presentation_workspace import PresentationWorkspace
 
 
@@ -240,6 +242,15 @@ def _check_pptx(workspace: PresentationWorkspace, report: QualityReport) -> None
         report.errors.append(f"presentation.pptx exists but is empty: {workspace.pptx_path}")
 
 
+def _check_html_presentation(workspace: PresentationWorkspace, report: QualityReport) -> None:
+    if not workspace.html_dir.exists():
+        return
+    try:
+        validate_static_html_output(workspace.html_dir)
+    except RuntimeError as exc:
+        report.errors.append(str(exc))
+
+
 def validate_project(
     workspace: PresentationWorkspace,
     check_outputs: bool = True,
@@ -251,4 +262,5 @@ def validate_project(
     if check_outputs:
         _check_manifest_assets(workspace, report)
         _check_pptx(workspace, report)
+        _check_html_presentation(workspace, report)
     return report

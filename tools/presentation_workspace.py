@@ -19,6 +19,7 @@ class PresentationWorkspace:
     slides_dir: Path
     manifest_path: Path
     pptx_path: Path
+    html_dir: Path
     metadata_path: Path
 
     def to_json_dict(self) -> dict[str, str]:
@@ -57,6 +58,7 @@ def get_project_workspace(project_id: str, root_dir: str | Path = DEFAULT_PROJEC
         slides_dir=project_dir / "slides",
         manifest_path=project_dir / "layout_manifest.json",
         pptx_path=project_dir / "presentation.pptx",
+        html_dir=project_dir / "presentation-html",
         metadata_path=project_dir / "project.json",
     )
 

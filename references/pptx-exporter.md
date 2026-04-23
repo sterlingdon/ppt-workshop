@@ -17,6 +17,8 @@ It extracts:
 
 `tools/pptx_exporter.py` consumes `layout_manifest.json` and creates `presentation.pptx`.
 
+`tools/html_exporter.py` builds the same active React slides into the complete `presentation-html/` Vite static-site directory, which is the comparison artifact for browser rendering versus the exported PPTX.
+
 It must preserve visual stacking:
 
 1. Background.

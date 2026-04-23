@@ -42,7 +42,8 @@ Run `python3 tools/ppt_workflow.py validate --project <project-id>` immediately 
 3. If `visual-validate` fails, repair the reported slide source, rerun `visual-validate`, regenerate screenshots, and repeat AI visual review because source changed.
 4. Build only after content, AI visual, and engineering gates all pass.
 
+`build` writes both `presentation.pptx` and the complete `presentation-html/` Vite static site. Use that directory to compare the browser source-of-truth rendering against the exported PPTX.
+
 ## Delegation
 
 Default to no delegation. Delegate only narrow, scoped subtasks with the current role prompt, exact artifact paths, and explicit read/write boundaries. The main agent keeps orchestration, role activation, gate approval, Design DNA ownership, slide blueprint ownership, AI visual approval, and invalidation decisions.
-

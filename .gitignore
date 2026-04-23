@@ -11,6 +11,7 @@ web/src/generated/slides/
 
 # Playwright MCP logs and screenshots
 .playwright-mcp/
+.playwright-cli/
 
 # Temporary slide previews
 slide*.png

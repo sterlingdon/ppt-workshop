@@ -23,6 +23,7 @@ INPUT (URL / text / PDF / notes)
   -> visual_validation_report.json
   -> layout_manifest.json + assets/
   -> presentation.pptx
+  -> presentation-html/ static site
 ```
 
 The CLI does not create the analysis, design DNA, outline, or React slide code. The agent creates those files.
@@ -48,6 +49,8 @@ output/projects/<project-id>/
 ├── visual_validation_report.json
 ├── layout_manifest.json
 ├── presentation.pptx
+├── presentation-html/
+│   └── index.html
 └── assets/
 ```
 
@@ -66,6 +69,7 @@ output/projects/<project-id>/
 | Engineering browser gate | Python/Playwright | React preview | `visual_validation_report.json` | Visibility, clipping, coverage, overflow |
 | Extraction | Python/Playwright | React preview | `layout_manifest.json`, `assets/` | Capture backgrounds/components/text boxes |
 | Export | Python | manifest | `presentation.pptx` | Build hybrid PPTX |
+| HTML export | Python/Vite | active React slides | `presentation-html/` | Build complete static browser presentation site for visual comparison |
 
 ## CLI
 
@@ -82,8 +86,9 @@ Other commands:
 - `snapshot-slides`: copy active generated slides back into the project.
 - `extract`: activate slides and write manifest/assets.
 - `export`: build PPTX from an existing manifest.
+- `export-html`: activate project slides and build the complete Vite static-site directory.
 
-`build` executes: activate -> source validation plus required agent gate report checks -> engineering browser validation -> extract -> export -> final output validation.
+`build` executes: activate -> source validation plus required agent gate report checks -> engineering browser validation -> extract -> export PPTX -> export Vite static site -> final output validation.
 
 `build` does not perform the human/agent work of Content Quality Audit or AI Lens Review. It does require their passed report files before export; missing or blocked `content_quality_report.json` or `visual_review_report.json` fails the build preflight.
 
@@ -141,6 +146,8 @@ Do not put `data-ppt-bg` and `data-ppt-text` on the same element unless the slid
 - slide code uses `--ppt-*` variables from `design_dna.json.theme_tokens`
 - manifest-referenced assets exist when outputs are checked
 - `presentation.pptx` is not empty when present
+- `presentation-html/index.html` is not missing or empty when `presentation-html/` exists
+- `presentation-html/index.html` references only files that exist in the same static-site directory
 
 It does not validate narrative quality, visual taste, audience fit, or design consistency.
 
@@ -161,6 +168,8 @@ It extracts:
 - native text boxes from `data-ppt-text`
 
 `tools/pptx_exporter.py` consumes `layout_manifest.json` and writes `presentation.pptx`.
+
+`tools/html_exporter.py` runs the Vite build for the active generated slides and writes the complete `presentation-html/` directory, including `index.html`, hashed JS/CSS under `assets/`, and other copied public assets. It uses relative asset paths so the static deck can be opened directly.
 
 Layer order:
 

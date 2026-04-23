@@ -1,10 +1,10 @@
 # Workflow
 
-This is the operator runbook for the current React-to-PPTX pipeline.
+This is the operator runbook for the current React-to-PPTX plus Vite static-site pipeline.
 
 ## Current Model
 
-The agent creates the content and slide code. The CLI handles workspace setup, slide activation, validation, browser extraction, and PPTX export.
+The agent creates the content and slide code. The CLI handles workspace setup, slide activation, validation, browser extraction, PPTX export, and Vite static-site export.
 
 ```text
 source material
@@ -22,6 +22,7 @@ source material
   -> visual_validation_report.json
   -> layout_manifest.json + assets/
   -> presentation.pptx
+  -> presentation-html/ static site
 ```
 
 ## Workspace
@@ -56,6 +57,8 @@ output/projects/<project-id>/
 ├── visual_validation_report.json
 ├── layout_manifest.json
 ├── presentation.pptx
+├── presentation-html/
+│   └── index.html
 └── assets/
 ```
 
@@ -254,7 +257,7 @@ Must do:
 11. **AI Repair Loop**: write `visual_review_report.json`, repair React slides, record each fix in `repair_log`, regenerate `review/full_deck.png` and `review/slides/*.png`, then repeat AI review until `status: "pass"`, every slide has `passed: true`, `blocking_findings == 0`, and every `repair_log` item is `resolved`.
 12. **Engineering Browser Gate**: run `python3 tools/ppt_workflow.py visual-validate --project <project-id>`. This is a rendered DOM visibility and overflow check, not an AI visual-quality review. Repair reported text, clipping, coverage, or overflow issues until `summary.failed == 0`. If the repair changes any slide source, return to Stage 9 and regenerate review screenshots before repeating AI Lens Review.
 13. **Build**: run `python3 tools/ppt_workflow.py build --project <project-id>`.
-14. **Final Check**: confirm `presentation.pptx`, `layout_manifest.json`, and `assets/` were regenerated after the final slide repairs.
+14. **Final Check**: confirm `presentation.pptx`, the complete `presentation-html/` static site, `layout_manifest.json`, and `assets/` were regenerated after the final slide repairs.
 
 ## Command Semantics
 
@@ -262,11 +265,12 @@ Must do:
 - `validate`: checks slide sources and marker basics. It does not judge narrative or design quality.
 - `review-screenshots`: activates project slides and writes rendered screenshots for AI Lens Review.
 - `visual-validate`: activates project slides, opens the browser preview, checks visible text, clipping, coverage, and overflow, then writes `visual_validation_report.json`. It is an engineering render gate, not a design critic, and does not satisfy the AI Lens Review.
-- `build`: activates slides, requires passed content and AI visual gate reports, runs engineering validation, extracts layout/assets, exports PPTX, and validates final outputs.
+- `build`: activates slides, requires passed content and AI visual gate reports, runs engineering validation, extracts layout/assets, exports PPTX and the Vite static-site directory, and validates final outputs.
 - `activate`: copies project slides into `web/src/generated/slides/`.
 - `snapshot-slides`: copies active generated slides back into the project.
 - `extract`: activates slides and writes `layout_manifest.json` plus assets.
 - `export`: builds PPTX from an existing manifest.
+- `export-html`: activates project slides and builds the complete `presentation-html/` Vite static-site directory.
 
 `review-screenshots`, `visual-validate`, `extract`, and `build` manage the preview server internally. They reuse an open server on the requested port when available and stop only the server they started themselves.
 
@@ -274,7 +278,7 @@ Must do:
 
 - Changing `analysis.json` or `content_quality_report.json` invalidates `design_recommendation.json`, `design_dna.json`, `outline.json`, `slide_blueprint.json`, downstream slide code, and visual validation.
 - Changing `design_recommendation.json`, `design_dna.json`, `outline.json`, or `slide_blueprint.json` invalidates downstream slide code and visual validation.
-- Changing any slide source invalidates review screenshots, `visual_review_report.json`, `visual_validation_report.json`, `layout_manifest.json`, `assets/`, and `presentation.pptx`.
+- Changing any slide source invalidates review screenshots, `visual_review_report.json`, `visual_validation_report.json`, `layout_manifest.json`, `assets/`, `presentation.pptx`, and `presentation-html/`.
 - Regenerate invalidated downstream artifacts before export. Do not trust stale downstream artifacts.
 
 ## Completion Criteria
@@ -292,4 +296,4 @@ A deck is complete only when:
 - `visual_review_report.json.status` is `"pass"` and has no blocking AI visual findings.
 - Every `visual_review_report.json` slide has `passed: true` and every `repair_log` item is `resolved`.
 - `visual_validation_report.json.summary.failed` is `0`.
-- `presentation.pptx` has been rebuilt from the approved slide sources.
+- `presentation.pptx` and the complete `presentation-html/` static site have been rebuilt from the approved slide sources.
