@@ -282,18 +282,100 @@ def test_quality_gate_accepts_passed_required_agent_reports(tmp_path):
     workspace = create_project_workspace("Passed Gates", root_dir=tmp_path, project_id="passed-gates")
     (workspace.slides_dir / "Slide_1.tsx").write_text(VALID_SLIDE, encoding="utf-8")
     write_index(workspace.slides_dir)
+    (workspace.project_dir / "review" / "slides").mkdir(parents=True)
+    (workspace.project_dir / "review" / "full_deck.png").write_bytes(b"png")
+    (workspace.project_dir / "review" / "slides" / "slide_01.png").write_bytes(b"png")
     (workspace.project_dir / "content_quality_report.json").write_text(
         '{"status":"pass","blocking_findings":0}',
         encoding="utf-8",
     )
     (workspace.project_dir / "visual_review_report.json").write_text(
-        '{"status":"pass","blocking_findings":0}',
+        """
+{
+  "review_type": "ai_lens_visual_review",
+  "status": "pass",
+  "blocking_findings": 0,
+  "review_capability": {
+    "method": "vision_model",
+    "image_input": true,
+    "model": "vision-capable-model",
+    "inspected_assets": ["review/full_deck.png", "review/slides/slide_01.png"]
+  },
+  "slides": [{"slide": 1, "passed": true, "findings": [], "repairs": []}]
+}
+""".strip(),
         encoding="utf-8",
     )
 
     report = validate_project(workspace, require_agent_reports=True)
 
     assert report.ok
+
+
+def test_quality_gate_rejects_passed_visual_report_without_review_capability(tmp_path):
+    workspace = create_project_workspace("No Visual Evidence", root_dir=tmp_path, project_id="no-visual-evidence")
+    (workspace.slides_dir / "Slide_1.tsx").write_text(VALID_SLIDE, encoding="utf-8")
+    write_index(workspace.slides_dir)
+    (workspace.project_dir / "content_quality_report.json").write_text(
+        '{"status":"pass","blocking_findings":0}',
+        encoding="utf-8",
+    )
+    (workspace.project_dir / "visual_review_report.json").write_text(
+        '{"review_type":"ai_lens_visual_review","status":"pass","blocking_findings":0,"slides":[{"slide":1,"passed":true}]}',
+        encoding="utf-8",
+    )
+
+    report = validate_project(workspace, require_agent_reports=True)
+
+    assert not report.ok
+    assert any("visual_review_report.json must record review_capability" in error for error in report.errors)
+
+
+def test_quality_gate_rejects_existing_passed_visual_report_without_evidence_during_basic_validate(tmp_path):
+    workspace = create_project_workspace("Basic Validate Visual Evidence", root_dir=tmp_path, project_id="basic-visual-evidence")
+    (workspace.slides_dir / "Slide_1.tsx").write_text(VALID_SLIDE, encoding="utf-8")
+    write_index(workspace.slides_dir)
+    (workspace.project_dir / "visual_review_report.json").write_text(
+        '{"review_type":"ai_lens_visual_review","status":"pass","blocking_findings":0,"slides":[{"slide":1,"passed":true}]}',
+        encoding="utf-8",
+    )
+
+    report = validate_project(workspace)
+
+    assert not report.ok
+    assert any("visual_review_report.json must record review_capability" in error for error in report.errors)
+
+
+def test_quality_gate_rejects_visual_review_assets_that_were_not_created(tmp_path):
+    workspace = create_project_workspace("Missing Visual Asset", root_dir=tmp_path, project_id="missing-visual-asset")
+    (workspace.slides_dir / "Slide_1.tsx").write_text(VALID_SLIDE, encoding="utf-8")
+    write_index(workspace.slides_dir)
+    (workspace.project_dir / "content_quality_report.json").write_text(
+        '{"status":"pass","blocking_findings":0}',
+        encoding="utf-8",
+    )
+    (workspace.project_dir / "visual_review_report.json").write_text(
+        """
+{
+  "review_type": "ai_lens_visual_review",
+  "status": "pass",
+  "blocking_findings": 0,
+  "review_capability": {
+    "method": "vision_model",
+    "image_input": true,
+    "model": "vision-capable-model",
+    "inspected_assets": ["review/full_deck.png", "review/slides/slide_01.png"]
+  },
+  "slides": [{"slide": 1, "passed": true, "findings": [], "repairs": []}]
+}
+""".strip(),
+        encoding="utf-8",
+    )
+
+    report = validate_project(workspace, require_agent_reports=True)
+
+    assert not report.ok
+    assert any("visual review inspected asset does not exist" in error for error in report.errors)
 
 
 def test_quality_gate_rejects_passed_content_report_with_unresolved_revisions(tmp_path):

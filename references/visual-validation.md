@@ -23,7 +23,7 @@ Input context:
 - `outline.json`
 - `slide_blueprint.json`
 
-The agent must inspect the slides like a visual director, not a DOM validator.
+The agent must inspect the slides like a visual director, not a DOM validator. If the active model cannot inspect images, the agent must block the AI Lens Review and record that limitation; it must not invent visual scores from file names or DOM assumptions.
 
 The review screenshots are required inputs. Generate them after the final slide source change and before writing `visual_review_report.json`.
 
@@ -53,6 +53,13 @@ Write `visual_review_report.json` as an AI audit artifact:
     "full_deck_screenshot": "review/full_deck.png",
     "slide_screenshots_dir": "review/slides"
   },
+  "review_capability": {
+    "method": "vision_model",
+    "image_input": true,
+    "model": "vision-capable-model-name",
+    "inspected_assets": ["review/full_deck.png", "review/slides/slide_01.png"],
+    "notes": ""
+  },
   "blocking_findings": 0,
   "repair_log": [],
   "slides": [
@@ -67,7 +74,7 @@ Write `visual_review_report.json` as an AI audit artifact:
 }
 ```
 
-If a slide fails, set `status` to `"blocked"`, repair the React source directly, regenerate review screenshots, and review it again. Do not move to export with unresolved blocking findings.
+If a slide fails, set `status` to `"blocked"`, repair the React source directly, regenerate review screenshots, and review it again. If no vision-capable review is available, also set `status` to `"blocked"` with a finding explaining the missing visual capability. Do not move to export with unresolved blocking findings.
 
 ## Engineering Browser Gate
 
@@ -115,7 +122,7 @@ Common false passes:
 5. Regenerate `review/full_deck.png` and `review/slides/*.png` after every slide-source repair.
 6. Run `visual-validate` and repair engineering findings.
 7. If an engineering repair changes any slide source, regenerate review screenshots and repeat AI Lens Review before trusting the engineering pass.
-8. Rebuild only when `visual_review_report.json.status == "pass"`, `visual_review_report.json.blocking_findings == 0`, every slide has `passed: true`, every `repair_log` item is `resolved`, and `visual_validation_report.json.summary.failed == 0`.
+8. Rebuild only when `visual_review_report.json.status == "pass"`, `visual_review_report.json.blocking_findings == 0`, `review_capability.inspected_assets` lists real screenshots, every slide has `passed: true`, every `repair_log` item is `resolved`, and `visual_validation_report.json.summary.failed == 0`.
 
 ## Repair Log Contract
 

@@ -386,6 +386,16 @@ AI Lens Review output.
     "full_deck_screenshot": "review/full_deck.png",
     "slide_screenshots_dir": "review/slides"
   },
+  "review_capability": {
+    "method": "vision_model",
+    "image_input": true,
+    "model": "vision-capable-model-name",
+    "inspected_assets": [
+      "review/full_deck.png",
+      "review/slides/slide_01.png"
+    ],
+    "notes": ""
+  },
   "blocking_findings": 0,
   "repair_log": [],
   "slides": [
@@ -401,6 +411,8 @@ AI Lens Review output.
 ```
 
 Use `examples/reports/visual-review-report.pass.json` and `examples/reports/visual-review-report.blocked.json` as examples. This report is a separate AI visual judgment gate; `visual_validation_report.json` from the engineering script does not replace it.
+
+A passing visual report must record real screenshot inspection in `review_capability`. If the active agent/model cannot inspect images, set `status` to `"blocked"`, set `blocking_findings` above `0`, and explain the missing capability in `findings`; do not fabricate scores or strengths. `build` rejects passing reports that omit `review_capability.inspected_assets` or reference screenshots that do not exist.
 
 When AI visual review requests changes, keep the repair loop explicit:
 

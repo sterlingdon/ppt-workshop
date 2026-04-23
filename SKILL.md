@@ -11,17 +11,33 @@ This skill turns source material into a presentation by building a project works
 
 Do not treat the CLI as an article-to-PPT generator or visual designer. The CLI manages project workspaces, validates existing React slides, checks engineering visibility/overflow issues, extracts layout, and exports PPTX plus the static HTML asset directory. The agent is responsible for content analysis, deck planning, design direction, React slide authoring, AI visual review, and repair loops.
 
-## Read Only What You Need
+## Execution Packet
 
-- Start every deck: read [`references/quickstart.md`](references/quickstart.md) and [`references/workflow.md`](references/workflow.md).
-- Before running any core agent role, including role switches performed by the same main agent: read [`references/agent-prompts.md`](references/agent-prompts.md), load the Shared Preamble, and load the exact active role prompt. Do not assume the agent has already read this skill, workflow, or system prompt.
-- Default to no sub-agent delegation. If delegation is necessary, follow the Sub-Agent Delegation Policy in [`references/workflow.md`](references/workflow.md) and [`references/agent-prompts.md`](references/agent-prompts.md); never delegate orchestration, role activation, gate approval, Design DNA ownership, slide blueprint ownership, AI visual approval, or invalidation decisions.
-- Before writing any artifact: use [`references/artifact-templates.md`](references/artifact-templates.md).
-- Before analysis/planning: read [`references/deck-brief.md`](references/deck-brief.md) and [`references/semantic-validation.md`](references/semantic-validation.md).
-- Before creating `design_recommendation.json` or `design_dna.json`: read [`references/ppt-visual-design.md`](references/ppt-visual-design.md), then invoke `ui-ux-pro-max` as a product/web design intelligence source for transferable visual principles, not as a request to build a website.
-- Before writing slides: first read and follow [`examples/react-slides/minimal-deck/README.md`](examples/react-slides/minimal-deck/README.md), then read [`references/slide-coding-rules.md`](references/slide-coding-rules.md), [`references/component-authoring.md`](references/component-authoring.md), and `web/src/styles/STYLE_GUIDE.md`.
-- Before visual repair/export: read [`references/visual-validation.md`](references/visual-validation.md), [`references/visual-fidelity.md`](references/visual-fidelity.md), and [`references/pptx-exporter.md`](references/pptx-exporter.md).
-- For implementation details only when blocked: read [`references/engineering.md`](references/engineering.md).
+Do not front-load every reference file. Read only the blocking context for the current stage, then continue producing artifacts.
+
+Required at start:
+
+- [`references/quickstart.md`](references/quickstart.md): condensed run path, commands, and repair loop.
+- [`references/workflow.md`](references/workflow.md): stage gates, invalidation rules, and completion criteria.
+
+Required at each role activation:
+
+- [`references/agent-prompts.md`](references/agent-prompts.md): Shared Preamble plus the exact active role prompt. Role prompts are mandatory even when one main agent performs every stage.
+- [`references/artifact-templates.md`](references/artifact-templates.md): read only the section for the artifact being written, not the whole file unless needed.
+
+Required by stage:
+
+- Content: [`references/deck-brief.md`](references/deck-brief.md) and [`references/semantic-validation.md`](references/semantic-validation.md).
+- Design: [`references/ppt-visual-design.md`](references/ppt-visual-design.md), then invoke the available `ui-ux-pro-max` design-intelligence entry point for transferable design judgment adapted to fixed 16:9 slides.
+- Slide code: [`examples/react-slides/minimal-deck/README.md`](examples/react-slides/minimal-deck/README.md), [`references/slide-coding-rules.md`](references/slide-coding-rules.md), [`references/component-authoring.md`](references/component-authoring.md), and `web/src/styles/STYLE_GUIDE.md`.
+- Visual/export repair: [`references/visual-validation.md`](references/visual-validation.md), [`references/visual-fidelity.md`](references/visual-fidelity.md), and [`references/pptx-exporter.md`](references/pptx-exporter.md).
+
+On-demand only:
+
+- [`references/engineering.md`](references/engineering.md): implementation/debug details when blocked.
+- `schemas/*.schema.json`: validate or resolve JSON shape questions.
+
+Default to no sub-agent delegation. If delegation is necessary, follow the Sub-Agent Delegation Policy in [`references/workflow.md`](references/workflow.md) and [`references/agent-prompts.md`](references/agent-prompts.md); never delegate orchestration, role activation, gate approval, Design DNA ownership, slide blueprint ownership, AI visual approval, or invalidation decisions.
 
 ## Core Artifacts
 
@@ -53,7 +69,7 @@ Required working contract:
 4. Write `content_quality_report.json` using the report examples in `examples/reports/`; do not proceed unless it has `status: "pass"`, no blocking content findings, no required revisions, and all `resolution_log` items resolved. If the report requires revisions, update the content artifacts, record the fixes, and re-run the audit before handoff.
 5. Activate the **PPT Generation Agent** role prompt, set `deck_state.json.active_role` to `ppt_generation_agent`: provide the exact prompt from `references/agent-prompts.md`, read `references/ppt-visual-design.md`, invoke `ui-ux-pro-max`, write `design_recommendation.json`, create `design_dna.json`, create `outline.json`, create `slide_blueprint.json`, then write React slides in `output/projects/<project-id>/slides/`.
 6. Run structural validation.
-7. Run `python3 tools/ppt_workflow.py review-screenshots --project <project-id>` to create rendered review screenshots in `review/full_deck.png` and `review/slides/*.png`, then activate the **Visual Review/Validation Agent** role prompt and set `deck_state.json.active_role` to `visual_review_validation_agent`: inspect those screenshots with an AI visual lens, write `visual_review_report.json`, repair weak slides, record each repair in `repair_log`, regenerate screenshots, and repeat until there are no blocking design findings.
+7. Run `python3 tools/ppt_workflow.py review-screenshots --project <project-id>` to create rendered review screenshots in `review/full_deck.png` and `review/slides/*.png`, then activate the **Visual Review/Validation Agent** role prompt and set `deck_state.json.active_role` to `visual_review_validation_agent`: inspect those screenshots with a vision-capable model or explicit human visual review, write `visual_review_report.json` with `review_capability`, repair weak slides, record each repair in `repair_log`, regenerate screenshots, and repeat until there are no blocking design findings. If the current model cannot inspect images, stop with `status: "blocked"` instead of fabricating visual scores.
 8. Run browser engineering validation and repair until `visual_validation_report.json.summary.failed` is `0`.
 9. Build/export the deck.
 10. Verify `presentation.pptx` and the complete `presentation-html/` static site exist, are non-empty, and were rebuilt from the approved slides.
@@ -86,7 +102,7 @@ python3 tools/ppt_workflow.py export-html --project <project-id>
 - Generation gate: `analysis.json`, `content_quality_report.json`, `design_recommendation.json`, `design_dna.json`, `outline.json`, and `slide_blueprint.json` must agree on audience, thesis, narrative arc, tone, slide roles, locked copy, flattened required texts, and visual anchors before slide coding.
 - Copy lock gate: React slide code must render the approved `slide_blueprint.json` copy. The React authoring step may choose layout, grouping, emphasis, and line breaks, but must not rewrite facts, titles, numbers, entities, or conclusions directly in TSX.
 - Source gate: `validate` must pass before export. It checks slide sources and marker basics; it does not judge deck quality.
-- AI visual gate: the agent must inspect rendered slides and reject pages that are technically valid but visually weak, generic, sparse, cluttered, off-theme, or not useful to the audience. Record the review and resolved repair loop in `visual_review_report.json`.
+- AI visual gate: the agent must inspect rendered slides and reject pages that are technically valid but visually weak, generic, sparse, cluttered, off-theme, or not useful to the audience. Record the review and resolved repair loop in `visual_review_report.json`. A passing report must include `review_capability.method`, `review_capability.image_input`, and `review_capability.inspected_assets`; text-only models must block rather than approve.
 - Engineering browser gate: `visual-validate` must pass with `summary.failed == 0`. This is not a visual-quality pass and does not replace `visual_review_report.json`.
 - Export gate: run `build` after content and AI visual gates pass; final PPTX and complete static HTML asset directory must be generated from the approved React slides.
 
@@ -103,6 +119,7 @@ python3 tools/ppt_workflow.py export-html --project <project-id>
 - PPT visual craft is a gate, not decoration. Weak hierarchy, oversized/undersized type, monotonous templates, poor whitespace, or generic web-card layouts must be repaired before export even when validators pass.
 - Do not let React slide authoring become a second writing pass. If approved copy is wrong, revise `slide_blueprint.json` and invalidate downstream artifacts.
 - The rendered browser preview is the truth for both AI visual review and engineering validation.
+- Do not write a passing `visual_review_report.json` unless a vision-capable model or explicit human visual review actually inspected the rendered screenshots named in `review_capability.inspected_assets`.
 - Never equate `visual-validate` success with visual excellence.
 - Do not hide essential content for PPTX-only export.
 - Do not downgrade visual quality just to make objects editable; use raster fallback where needed.

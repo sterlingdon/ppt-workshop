@@ -51,3 +51,39 @@ def test_slides_schema_image_request():
         }
     }]
     jsonschema.validate(data, schema)
+
+def test_visual_review_schema_requires_review_capability():
+    schema = load_schema("visual_review")
+    data = {
+        "project_id": "deck",
+        "review_type": "ai_lens_visual_review",
+        "gate_type": "ai_visual_quality_review",
+        "status": "pass",
+        "blocking_findings": 0,
+        "slides": [{"slide": 1, "passed": True, "visual_score": 8, "findings": [], "repairs": []}]
+    }
+    with pytest.raises(jsonschema.ValidationError):
+        jsonschema.validate(data, schema)
+
+def test_visual_review_schema_accepts_vision_review_evidence():
+    schema = load_schema("visual_review")
+    data = {
+        "project_id": "deck",
+        "review_type": "ai_lens_visual_review",
+        "gate_type": "ai_visual_quality_review",
+        "status": "pass",
+        "review_assets": {
+            "full_deck_screenshot": "review/full_deck.png",
+            "slide_screenshots_dir": "review/slides"
+        },
+        "review_capability": {
+            "method": "vision_model",
+            "image_input": True,
+            "model": "vision-capable-model",
+            "inspected_assets": ["review/full_deck.png", "review/slides/slide_01.png"]
+        },
+        "blocking_findings": 0,
+        "repair_log": [],
+        "slides": [{"slide": 1, "passed": True, "visual_score": 8, "findings": [], "repairs": []}]
+    }
+    jsonschema.validate(data, schema)

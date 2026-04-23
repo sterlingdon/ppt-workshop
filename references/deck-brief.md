@@ -166,10 +166,11 @@ Must define:
 - `gate_type`: `ai_visual_quality_review`
 - `status`: `pass` or `blocked`
 - `review_assets`
+- `review_capability`: real review method, image-input capability, and inspected screenshot paths
 - `blocking_findings`
 - per-slide `passed`, `visual_score`, `findings`, and `repairs`
 
-This is not the Python engineering validator. It records AI visual judgment and repair decisions. `visual_validation_report.json` cannot replace it.
+This is not the Python engineering validator. It records AI visual judgment and repair decisions. `visual_validation_report.json` cannot replace it. If the active agent cannot inspect images, write a blocked report instead of pretending the rendered screenshots were reviewed.
 
 ## Update Rules
 

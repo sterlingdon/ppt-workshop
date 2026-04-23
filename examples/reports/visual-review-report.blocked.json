@@ -7,6 +7,13 @@
     "full_deck_screenshot": "review/full_deck.png",
     "slide_screenshots_dir": "review/slides"
   },
+  "review_capability": {
+    "method": "vision_model",
+    "image_input": true,
+    "model": "vision-capable-model",
+    "inspected_assets": ["review/full_deck.png", "review/slides/slide_01.png"],
+    "notes": "The reviewer inspected rendered screenshots and found blocking visual issues."
+  },
   "blocking_findings": 2,
   "repair_log": [
     {

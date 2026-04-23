@@ -151,6 +151,50 @@ def _open_log_items(data: dict, field: str) -> list[dict]:
     return [item for item in items if isinstance(item, dict) and item.get("status") != "resolved"]
 
 
+def _resolve_project_path(workspace: PresentationWorkspace, raw_path: str) -> Path:
+    path = Path(raw_path)
+    if path.is_absolute():
+        return path
+    return workspace.project_dir / path
+
+
+def _check_visual_review_capability(
+    workspace: PresentationWorkspace,
+    visual_report: dict,
+    report: QualityReport,
+    require_agent_reports: bool,
+) -> None:
+    if visual_report.get("status") != "pass":
+        return
+
+    capability = visual_report.get("review_capability")
+    if not isinstance(capability, dict):
+        report.errors.append("visual_review_report.json must record review_capability for a passing AI visual gate")
+        return
+
+    method = capability.get("method")
+    allowed_methods = {"vision_model", "human_visual_review"}
+    if method not in allowed_methods:
+        report.errors.append(
+            "visual_review_report.json review_capability.method must be vision_model or human_visual_review"
+        )
+
+    if method == "vision_model" and capability.get("image_input") is not True:
+        report.errors.append("visual_review_report.json vision_model review_capability must set image_input true")
+
+    inspected_assets = capability.get("inspected_assets", [])
+    if not isinstance(inspected_assets, list) or not inspected_assets:
+        report.errors.append("visual_review_report.json review_capability.inspected_assets must list reviewed screenshots")
+        return
+
+    for asset in inspected_assets:
+        if not isinstance(asset, str) or not asset.strip():
+            report.errors.append("visual_review_report.json review_capability.inspected_assets contains an invalid path")
+            continue
+        if not _resolve_project_path(workspace, asset).is_file():
+            report.errors.append(f"visual review inspected asset does not exist: {asset}")
+
+
 def _check_agent_reports(workspace: PresentationWorkspace, report: QualityReport, require_agent_reports: bool = False) -> None:
     content_report = _load_json(workspace.project_dir / "content_quality_report.json", report, "content_quality_report.json")
     if require_agent_reports and content_report is None:
@@ -188,6 +232,7 @@ def _check_agent_reports(workspace: PresentationWorkspace, report: QualityReport
             report.errors.append("visual_review_report.json has slides not passed")
         if _open_log_items(visual_report, "repair_log"):
             report.errors.append("visual_review_report.json has unresolved repair log items")
+        _check_visual_review_capability(workspace, visual_report, report, require_agent_reports)
 
 
 def _resolve_manifest_path(workspace: PresentationWorkspace, raw_path: str) -> Path:

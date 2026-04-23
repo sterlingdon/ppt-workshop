@@ -236,11 +236,12 @@ Outputs:
 Must do:
 
 - read `references/ppt-visual-design.md` before reviewing
-- inspect slides with an AI visual lens, not just a DOM validator
+- inspect slides with a vision-capable model or explicit human visual review, not just a DOM validator
 - use `review/full_deck.png` and `review/slides/*.png` as the review inputs
 - reject weak, generic, cluttered, off-theme, article-like, or low-value slides, including slides with poor font sizing, weak hierarchy, cramped spacing, or no clear focal point
 - repair React slides directly
 - run engineering validation only after AI visual review has no blocking findings
+- if the current model cannot inspect images, write `visual_review_report.json` with `status: "blocked"` and a blocking finding instead of creating fake scores or passing the gate
 
 ## Stage Checklist
 
@@ -253,7 +254,7 @@ Must do:
 7. **PPT Generation**: activate the PPT Generation Agent role prompt, set `deck_state.json.active_role` to `ppt_generation_agent`, then write slide components in `output/projects/<project-id>/slides/`. Each slide root is 1920x1080 and has `data-ppt-slide`.
 8. **Structural Gate**: run `python3 tools/ppt_workflow.py validate --project <project-id>`.
 9. **Render Review Assets**: run `python3 tools/ppt_workflow.py review-screenshots --project <project-id>`. This activates the project slides, opens the full-deck browser preview with `?extract=1`, writes `review/full_deck.png`, and writes one screenshot per slide to `review/slides/slide_XX.png`.
-10. **AI Lens Review**: activate the Visual Review/Validation Agent role prompt, set `deck_state.json.active_role` to `visual_review_validation_agent`, then inspect the rendered browser deck as a visual director. Judge hierarchy, focal point, visual rhythm, brand consistency, information density, audience usefulness, and slide-to-slide pacing.
+10. **AI Lens Review**: activate the Visual Review/Validation Agent role prompt, set `deck_state.json.active_role` to `visual_review_validation_agent`, then inspect the rendered browser deck as a visual director using a vision-capable model or explicit human visual review. Judge hierarchy, focal point, visual rhythm, brand consistency, information density, audience usefulness, and slide-to-slide pacing. If image inspection is unavailable, block the gate instead of inventing a review.
 11. **AI Repair Loop**: write `visual_review_report.json`, repair React slides, record each fix in `repair_log`, regenerate `review/full_deck.png` and `review/slides/*.png`, then repeat AI review until `status: "pass"`, every slide has `passed: true`, `blocking_findings == 0`, and every `repair_log` item is `resolved`.
 12. **Engineering Browser Gate**: run `python3 tools/ppt_workflow.py visual-validate --project <project-id>`. This is a rendered DOM visibility and overflow check, not an AI visual-quality review. Repair reported text, clipping, coverage, or overflow issues until `summary.failed == 0`. If the repair changes any slide source, return to Stage 9 and regenerate review screenshots before repeating AI Lens Review.
 13. **Build**: run `python3 tools/ppt_workflow.py build --project <project-id>`.
@@ -294,6 +295,7 @@ A deck is complete only when:
 - `slide_blueprint.json` exists and every slide has a build plan for copy, visual hierarchy, type scale, focal point, whitespace, density, and export markers.
 - `review/full_deck.png` and one `review/slides/slide_XX.png` per slide were generated after the final slide source change.
 - `visual_review_report.json.status` is `"pass"` and has no blocking AI visual findings.
+- `visual_review_report.json.review_capability` records the actual review method, image-input capability, and inspected screenshot paths.
 - Every `visual_review_report.json` slide has `passed: true` and every `repair_log` item is `resolved`.
 - `visual_validation_report.json.summary.failed` is `0`.
 - `presentation.pptx` and the complete `presentation-html/` static site have been rebuilt from the approved slide sources.

@@ -206,9 +206,10 @@ Inputs:
 
 Responsibilities:
 - Read references/ppt-visual-design.md before reviewing.
-- Inspect the rendered deck using review/full_deck.png and review/slides/*.png.
+- Inspect the rendered deck using review/full_deck.png and review/slides/*.png with a vision-capable model or explicit human visual review.
 - Judge focal point, hierarchy, title/body/metric scale, composition, information density, whitespace, rhythm, brand consistency, audience usefulness, and craft.
 - Reject slides that are technically valid but generic, weak, sparse, cluttered, off-theme, monotonous, templated, article-like, or not useful.
+- Record `review_capability.method`, `review_capability.image_input`, `review_capability.model` when available, and the exact `review_capability.inspected_assets` used for the visual judgment.
 - Repair React slide sources directly.
 - Run engineering validation only after AI visual review has `status: "pass"`, no blocking findings, every slide passed, and every repair_log item resolved.
 - Keep HTML preview and PPTX export needs aligned.
@@ -220,10 +221,11 @@ Outputs:
 - repaired React slides
 
 Pass condition:
-- visual_review_report.json.status is "pass", visual_review_report.json.blocking_findings is 0, every slide has passed true, and every repair_log item is resolved.
+- visual_review_report.json.status is "pass", visual_review_report.json.blocking_findings is 0, review_capability proves real screenshot inspection, every slide has passed true, and every repair_log item is resolved.
 - visual_validation_report.json.summary.failed is 0.
 
 Failure behavior:
+- If the current model cannot inspect images, write visual_review_report.json with `status: "blocked"`, `blocking_findings` greater than 0, and a finding explaining the missing visual capability. Do not create fake visual scores.
 - If Python engineering validation passes but a slide looks weak, keep repairing.
 - If engineering validation fails, fix missing, hidden, clipped, covered, or overflowing content.
 - If you repair a visual finding, record the changed artifacts and evidence in repair_log before requesting re-review.
