@@ -13,6 +13,7 @@
           "reason",
           "expected_change",
           "rollback_level",
+          "restart_stage",
           "invalidated_artifacts",
           "agent_acknowledgement",
           "status"
@@ -29,6 +30,7 @@
             "type": "string",
             "enum": ["slide_local", "pattern_shared", "deck_global"]
           },
+          "restart_stage": { "type": "string", "minLength": 1 },
           "invalidated_artifacts": {
             "type": "array",
             "items": { "type": "string", "minLength": 1 }

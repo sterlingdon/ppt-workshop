@@ -207,3 +207,10 @@ def test_build_parser_includes_log_feedback_command():
     args = parser.parse_args(["log-feedback", "--project", "demo", "--message", "Slide 7 的三角图完全不对"])
 
     assert args.command == "log-feedback"
+
+
+def test_build_parser_includes_asset_manifest_command():
+    parser = build_parser()
+    args = parser.parse_args(["asset-manifest", "--project", "demo"])
+
+    assert args.command == "asset-manifest"
