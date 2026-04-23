@@ -250,21 +250,24 @@ Must do:
 3. **Design Intelligence**: read `references/ppt-visual-design.md`, then invoke `ui-ux-pro-max` with the approved deck domain, audience, tone, complexity, source thesis, and desired presentation goal. The query must state that `ui-ux-pro-max` is being used for transferable web/product design principles adapted to a fixed 16:9 PowerPoint deck, not for website or app UI generation. Save the distilled style, palette, typography, layout, chart, and UX-quality recommendations to `design_recommendation.json`.
 4. **Design DNA**: create `design_dna.json` from the `ui-ux-pro-max` recommendations. Define a complete visual system: visual direction, full `theme_tokens`, visual recipes, signature visual moves, slide-pattern assignments, and consistency rules. React slides must apply `theme_tokens` directly.
 5. **Outline**: create `outline.json`. Every slide needs a type, title, and one sentence explaining its job. The outline must reflect `content_quality_report.json`.
-6. **Slide Blueprint**: create `slide_blueprint.json` with each slide's role, key message, supporting evidence, `locked_copy`, flattened `required_texts`, visual anchor, layout pattern, type-scale guidance, hierarchy plan, whitespace strategy, density target, and marker requirements. `locked_copy` is what React renders; `required_texts` is only a validation-friendly flattening of the same copy.
-7. **PPT Generation**: activate the PPT Generation Agent role prompt, set `deck_state.json.active_role` to `ppt_generation_agent`, then write slide components in `output/projects/<project-id>/slides/`. Each slide root is 1920x1080 and has `data-ppt-slide`.
-8. **Structural Gate**: run `python3 tools/ppt_workflow.py validate --project <project-id>`.
-9. **Render Review Assets**: run `python3 tools/ppt_workflow.py review-screenshots --project <project-id>`. This activates the project slides, opens the full-deck browser preview with `?extract=1`, writes `review/full_deck.png`, and writes one screenshot per slide to `review/slides/slide_XX.png`.
-10. **AI Lens Review**: activate the Visual Review/Validation Agent role prompt, set `deck_state.json.active_role` to `visual_review_validation_agent`, then inspect the rendered browser deck as a visual director using a vision-capable model or explicit human visual review. Judge hierarchy, focal point, visual rhythm, brand consistency, information density, audience usefulness, and slide-to-slide pacing. If image inspection is unavailable, block the gate instead of inventing a review.
-11. **AI Repair Loop**: write `visual_review_report.json`, repair React slides, record each fix in `repair_log`, regenerate `review/full_deck.png` and `review/slides/*.png`, then repeat AI review until `status: "pass"`, every slide has `passed: true`, `blocking_findings == 0`, and every `repair_log` item is `resolved`.
-12. **Engineering Browser Gate**: run `python3 tools/ppt_workflow.py visual-validate --project <project-id>`. This is a rendered DOM visibility and overflow check, not an AI visual-quality review. Repair reported text, clipping, coverage, or overflow issues until `summary.failed == 0`. If the repair changes any slide source, return to Stage 9 and regenerate review screenshots before repeating AI Lens Review.
-13. **Build**: run `python3 tools/ppt_workflow.py build --project <project-id>`.
-14. **Final Check**: confirm `presentation.pptx`, the complete `presentation-html/` static site, `layout_manifest.json`, and `assets/` were regenerated after the final slide repairs.
+6. **Slide Blueprint**: create `slide_blueprint.json` with each slide's role, key message, supporting evidence, `locked_copy`, flattened `required_texts`, visual anchor, layout pattern, type-scale guidance, hierarchy plan, whitespace strategy, density target, marker requirements, and asset intent. `locked_copy` is what React renders; `required_texts` is only a validation-friendly flattening of the same copy.
+7. **Visual Asset Plan**: write `visual_asset_plan.json` or run `python3 tools/ppt_workflow.py asset-plan --project <project-id>` to persist the current asset-routing contract for the deck.
+8. **PPT Generation**: activate the PPT Generation Agent role prompt, set `deck_state.json.active_role` to `ppt_generation_agent`, then write slide components in `output/projects/<project-id>/slides/`. Each slide root is 1920x1080 and has `data-ppt-slide`.
+9. **Structural Gate**: run `python3 tools/ppt_workflow.py validate --project <project-id>`.
+10. **Render Review Assets**: run `python3 tools/ppt_workflow.py review-screenshots --project <project-id>`. This activates the project slides, opens the full-deck browser preview with `?extract=1`, writes `review/full_deck.png`, and writes one screenshot per slide to `review/slides/slide_XX.png`.
+11. **AI Lens Review**: activate the Visual Review/Validation Agent role prompt, set `deck_state.json.active_role` to `visual_review_validation_agent`, then inspect the rendered browser deck as a visual director using a vision-capable model or explicit human visual review. The review must record context sources, dual scores, hard blockers, and wow checks for critical pages. If image inspection is unavailable, block the gate instead of inventing a review.
+12. **AI Repair Loop**: write `visual_review_report.json`, repair React slides, record each fix in `repair_log`, regenerate `review/full_deck.png` and `review/slides/*.png`, then repeat AI review until `status: "pass"`, every slide has `passed: true`, `blocking_findings == 0`, every `repair_log` item is `resolved`, and critical visual slides have `wow_passed: true`.
+13. **Engineering Browser Gate**: run `python3 tools/ppt_workflow.py visual-validate --project <project-id>`. This is a rendered DOM visibility and overflow check, not an AI visual-quality review. Repair reported text, clipping, coverage, or overflow issues until `summary.failed == 0`. If the repair changes any slide source, return to Stage 10 and regenerate review screenshots before repeating AI Lens Review.
+14. **Build**: run `python3 tools/ppt_workflow.py build --project <project-id>`.
+15. **Final Check**: confirm `presentation.pptx`, the complete `presentation-html/` static site, `layout_manifest.json`, and `assets/` were regenerated after the final slide repairs.
 
 ## Command Semantics
 
 - `init`: creates `project.json`, `assets/`, and `slides/`.
 - `validate`: checks slide sources and marker basics. It does not judge narrative or design quality.
 - `review-screenshots`: activates project slides and writes rendered screenshots for AI Lens Review.
+- `asset-plan`: writes the current `visual_asset_plan.json` artifact for the project.
+- `log-feedback`: normalizes natural-language human feedback into `human_feedback_log.json`.
 - `visual-validate`: activates project slides, opens the browser preview, checks visible text, clipping, coverage, and overflow, then writes `visual_validation_report.json`. It is an engineering render gate, not a design critic, and does not satisfy the AI Lens Review.
 - `build`: activates slides, requires passed content and AI visual gate reports, runs engineering validation, extracts layout/assets, exports PPTX and the Vite static-site directory, and validates final outputs.
 - `activate`: copies project slides into `web/src/generated/slides/`.
@@ -280,6 +283,7 @@ Must do:
 - Changing `analysis.json` or `content_quality_report.json` invalidates `design_recommendation.json`, `design_dna.json`, `outline.json`, `slide_blueprint.json`, downstream slide code, and visual validation.
 - Changing `design_recommendation.json`, `design_dna.json`, `outline.json`, or `slide_blueprint.json` invalidates downstream slide code and visual validation.
 - Changing any slide source invalidates review screenshots, `visual_review_report.json`, `visual_validation_report.json`, `layout_manifest.json`, `assets/`, `presentation.pptx`, and `presentation-html/`.
+- Human feedback may invalidate only one slide (`slide_local`), a shared visual pattern (`pattern_shared`), or deck-wide contracts (`deck_global`). Do not invalidate already-approved slides unless a shared or deck-wide contract changed.
 - Regenerate invalidated downstream artifacts before export. Do not trust stale downstream artifacts.
 
 ## Completion Criteria

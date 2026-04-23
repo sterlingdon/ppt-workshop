@@ -27,6 +27,24 @@ The agent must inspect the slides like a visual director, not a DOM validator. I
 
 The review screenshots are required inputs. Generate them after the final slide source change and before writing `visual_review_report.json`.
 
+The review prompt must include a real context packet, not just the image:
+
+- `analysis.json`
+- `design_dna.json`
+- `outline.json`
+- `slide_blueprint.json`
+- current slide asset intent and selected asset rationale
+
+The review report must record:
+
+- `review_context.context_sources`
+- `review_context.rubric_version`
+- `review_context.critical_slide_policy_version`
+- per-slide `visual_craft_score`
+- per-slide `strategic_clarity_score`
+- per-slide `hard_blockers`
+- per-slide `wow_passed` when `critical_visual` is true
+
 Judge each slide on:
 
 - focal point: what grabs attention in the first 3 seconds
@@ -53,6 +71,11 @@ Write `visual_review_report.json` as an AI audit artifact:
     "full_deck_screenshot": "review/full_deck.png",
     "slide_screenshots_dir": "review/slides"
   },
+  "review_context": {
+    "context_sources": ["analysis.json", "design_dna.json", "outline.json", "slide_blueprint.json"],
+    "rubric_version": "visual_review_rubric_v1",
+    "critical_slide_policy_version": "critical_visual_policy_v1"
+  },
   "review_capability": {
     "method": "vision_model",
     "image_input": true,
@@ -67,6 +90,13 @@ Write `visual_review_report.json` as an AI audit artifact:
       "slide": 1,
       "passed": true,
       "visual_score": 9,
+      "visual_craft_score": 9.1,
+      "strategic_clarity_score": 9.0,
+      "hard_blockers": [],
+      "critical_visual": true,
+      "wow_passed": true,
+      "review_scope": "slide_local",
+      "rollback_recommendation": "none",
       "findings": [],
       "repairs": []
     }
@@ -123,6 +153,8 @@ Common false passes:
 6. Run `visual-validate` and repair engineering findings.
 7. If an engineering repair changes any slide source, regenerate review screenshots and repeat AI Lens Review before trusting the engineering pass.
 8. Rebuild only when `visual_review_report.json.status == "pass"`, `visual_review_report.json.blocking_findings == 0`, `review_capability.inspected_assets` lists real screenshots, every slide has `passed: true`, every `repair_log` item is `resolved`, and `visual_validation_report.json.summary.failed == 0`.
+
+Critical visual slides must also pass wow checks. Any non-empty `hard_blockers` list blocks the slide regardless of score.
 
 ## Repair Log Contract
 

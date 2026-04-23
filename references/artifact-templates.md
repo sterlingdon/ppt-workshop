@@ -386,6 +386,16 @@ AI Lens Review output.
     "full_deck_screenshot": "review/full_deck.png",
     "slide_screenshots_dir": "review/slides"
   },
+  "review_context": {
+    "context_sources": [
+      "analysis.json",
+      "design_dna.json",
+      "outline.json",
+      "slide_blueprint.json"
+    ],
+    "rubric_version": "visual_review_rubric_v1",
+    "critical_slide_policy_version": "critical_visual_policy_v1"
+  },
   "review_capability": {
     "method": "vision_model",
     "image_input": true,
@@ -403,6 +413,18 @@ AI Lens Review output.
       "slide": 1,
       "passed": true,
       "visual_score": 9,
+      "visual_craft_score": 9.1,
+      "strategic_clarity_score": 9.0,
+      "hard_blockers": [],
+      "criteria_scores": {
+        "focal_point": 9,
+        "hierarchy": 9,
+        "composition": 9
+      },
+      "critical_visual": true,
+      "wow_passed": true,
+      "review_scope": "slide_local",
+      "rollback_recommendation": "none",
       "findings": [],
       "repairs": []
     }
@@ -413,6 +435,16 @@ AI Lens Review output.
 Use `examples/reports/visual-review-report.pass.json` and `examples/reports/visual-review-report.blocked.json` as examples. This report is a separate AI visual judgment gate; `visual_validation_report.json` from the engineering script does not replace it.
 
 A passing visual report must record real screenshot inspection in `review_capability`. If the active agent/model cannot inspect images, set `status` to `"blocked"`, set `blocking_findings` above `0`, and explain the missing capability in `findings`; do not fabricate scores or strengths. `build` rejects passing reports that omit `review_capability.inspected_assets` or reference screenshots that do not exist.
+
+Passing reports must also record:
+
+- `review_context.context_sources`
+- `review_context.rubric_version`
+- per-slide `visual_craft_score`
+- per-slide `strategic_clarity_score`
+- per-slide `hard_blockers`
+- per-slide `wow_passed` when `critical_visual` is true
+- per-slide `rollback_recommendation`
 
 When AI visual review requests changes, keep the repair loop explicit:
 
