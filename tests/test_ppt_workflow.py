@@ -5,7 +5,7 @@ from types import SimpleNamespace
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import tools.ppt_workflow as ppt_workflow
-from tools.ppt_workflow import main
+from tools.ppt_workflow import build_parser, main
 
 
 VALID_SLIDE = """
@@ -193,3 +193,17 @@ def test_cli_review_screenshots_command_writes_review_assets(tmp_path, monkeypat
     assert code == 0
     assert calls == [("cli-deck", "web", 5173, True)]
     assert "review screenshots written" in captured.out
+
+
+def test_build_parser_includes_asset_plan_command():
+    parser = build_parser()
+    args = parser.parse_args(["asset-plan", "--project", "demo"])
+
+    assert args.command == "asset-plan"
+
+
+def test_build_parser_includes_log_feedback_command():
+    parser = build_parser()
+    args = parser.parse_args(["log-feedback", "--project", "demo", "--message", "Slide 7 的三角图完全不对"])
+
+    assert args.command == "log-feedback"

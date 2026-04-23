@@ -3,11 +3,13 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import json
 from pathlib import Path
 
 try:
     from .builder import extract_layout_and_assets
     from .deck_sources import activate_project_slides, snapshot_active_slides
+    from .human_feedback import normalize_feedback
     from .html_exporter import build_html_presentation
     from .pptx_exporter import build_pptx
     from .presentation_workspace import create_project_workspace, get_project_workspace
@@ -16,6 +18,7 @@ try:
 except ImportError:
     from builder import extract_layout_and_assets
     from deck_sources import activate_project_slides, snapshot_active_slides
+    from human_feedback import normalize_feedback
     from html_exporter import build_html_presentation
     from pptx_exporter import build_pptx
     from presentation_workspace import create_project_workspace, get_project_workspace
@@ -70,6 +73,31 @@ def cmd_validate(args) -> int:
     for warning in report.warnings:
         print(f"warning: {warning}")
     return 1
+
+
+def cmd_asset_plan(args) -> int:
+    workspace = _workspace(args)
+    payload = {
+        "project_id": workspace.project_id,
+        "slides": [],
+    }
+    workspace.visual_asset_plan_path.write_text(
+        json.dumps(payload, indent=2, ensure_ascii=False),
+        encoding="utf-8",
+    )
+    print(f"wrote {workspace.visual_asset_plan_path}")
+    return 0
+
+
+def cmd_log_feedback(args) -> int:
+    workspace = _workspace(args)
+    payload = normalize_feedback(args.message, default_stage=args.stage)
+    workspace.human_feedback_log_path.write_text(
+        json.dumps({"items": [payload]}, indent=2, ensure_ascii=False),
+        encoding="utf-8",
+    )
+    print(f"wrote {workspace.human_feedback_log_path}")
+    return 0
 
 
 async def _visual_validate(args) -> int:
@@ -198,6 +226,17 @@ def build_parser() -> argparse.ArgumentParser:
     init.add_argument("--project-root", default="output/projects")
     init.add_argument("--project-id")
     init.set_defaults(func=cmd_init)
+
+    for name, help_text, func in [
+        ("asset-plan", "Write the visual asset plan artifact for a project.", cmd_asset_plan),
+        ("log-feedback", "Normalize human feedback into the project feedback log.", cmd_log_feedback),
+    ]:
+        command = sub.add_parser(name, help=help_text)
+        command.add_argument("--project", required=True)
+        command.add_argument("--project-root", default="output/projects")
+        command.add_argument("--message")
+        command.add_argument("--stage", default="visual_review")
+        command.set_defaults(func=func)
 
     for name, help_text, func in [
         ("snapshot-slides", "Persist active web/src/generated/slides into a project.", cmd_snapshot_slides),
