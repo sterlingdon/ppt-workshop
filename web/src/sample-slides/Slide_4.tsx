@@ -1,4 +1,4 @@
-import { getDeckStylePreset, styleVars } from '../styles'
+import type { CSSProperties } from 'react'
 
 const steps = [
   { id: 'one', title: 'Mark', body: 'Use group and item markers.' },
@@ -6,13 +6,20 @@ const steps = [
   { id: 'three', title: 'Export', body: 'Place item rasters and native text.' },
 ]
 
-export default function Slide_4() {
-  const preset = getDeckStylePreset('aurora-borealis')
+const designDnaTheme = {
+  '--ppt-bg': '#080A14',
+  '--ppt-surface': 'rgba(255,255,255,0.06)',
+  '--ppt-secondary': '#22D3EE',
+  '--ppt-text': '#F8FAFC',
+  '--ppt-muted': '#A1A1AA',
+  '--ppt-border': 'rgba(255,255,255,0.14)',
+} as CSSProperties
 
+export default function Slide_4() {
   return (
     <div
       className="w-[1920px] h-[1080px] bg-[var(--ppt-bg)] p-24"
-      style={styleVars(preset)}
+      style={designDnaTheme}
       data-ppt-slide="4"
     >
       <h2 data-ppt-text className="mb-24 text-6xl font-black text-[var(--ppt-text)]">

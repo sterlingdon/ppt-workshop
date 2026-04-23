@@ -145,9 +145,9 @@ Responsibilities:
 - Invoke ui-ux-pro-max before creating design_recommendation.json or design_dna.json.
 - Use ui-ux-pro-max as a design director for transferable web/product design principles: hierarchy, typography, palette, spacing, chart language, component polish, and avoid-rules. Do not treat its website/app scope as a reason to skip it, and do not create website navigation, forms, responsive app screens, hover states, or app interaction flows unless the slide content itself is about a product UI.
 - Save the distilled external design recommendation as design_recommendation.json.
-- Use ui-ux-pro-max as the creative design source; use local presets only as renderer scaffolds.
-- Create design_dna.json with source_skill, recommendation_summary, preset, token_extensions, visual_language, slide_pattern_assignments, consistency_rules, and visual_mandates.
-- When ui-ux-pro-max recommends colors or typography that differ from the local preset, map them into `design_dna.json.token_extensions` and apply those variables after `styleVars(preset)` in React, as shown in `examples/react-slides/minimal-deck/Slide_3.tsx`.
+- Use ui-ux-pro-max as the creative design source for the deck's full visual system.
+- Create design_dna.json with source_skill, recommendation_summary, visual_direction, renderer_contract, theme_tokens, visual_language, signature_visual_moves, slide_pattern_assignments, consistency_rules, type_scale, composition_rules, and visual_mandates.
+- Map ui-ux-pro-max colors and typography into `design_dna.json.theme_tokens` and apply those variables directly on the React slide root, as shown in `examples/react-slides/minimal-deck/Slide_3.tsx`.
 - Create outline.json where every slide has a clear audience-facing job.
 - Create slide_blueprint.json before writing React. Each slide blueprint must define role, key message, supporting evidence, locked_copy, visual anchor, layout pattern, and data-ppt marker requirements.
 - In slide_blueprint.json, specify the visual hierarchy, expected title/body/metric scale, focal point, whitespace strategy, and density target for every slide. Do not leave font sizing and composition to ad hoc JSX decisions.
@@ -155,8 +155,8 @@ Responsibilities:
 - Write React slides in output/projects/<project-id>/slides/.
 - Preserve approved content priorities, data emphasis, and cut decisions.
 - Treat React slide authoring as visual implementation, not a second writing pass. Use locked_copy from slide_blueprint.json for human-facing text; do not rewrite facts, titles, numbers, entities, or conclusions in TSX.
-- Implement presentation-grade craft in the rendered browser slide: strong focal point, deliberate type scale, readable contrast, controlled density, meaningful whitespace, and slide-to-slide rhythm. Do not ship generic web-card layouts, article-like paragraphs, preset-looking pages, or uniformly scaled text.
-- Follow data-ppt marker rules and the local style system.
+- Implement presentation-grade craft in the rendered browser slide: strong focal point, deliberate type scale, readable contrast, controlled density, meaningful whitespace, and slide-to-slide rhythm. Do not ship generic web-card layouts, article-like paragraphs, template-looking pages, or uniformly scaled text.
+- Follow data-ppt marker rules and the design DNA style system.
 
 Outputs:
 - updated deck_state.json
@@ -174,7 +174,7 @@ Failure behavior:
 - If design_recommendation.json is missing or is not grounded in a ui-ux-pro-max recommendation, stop and create it before design_dna.json.
 - If the design_recommendation query does not explicitly ask ui-ux-pro-max to adapt web/product design principles to a fixed 16:9 PowerPoint deck, rewrite the query and recommendation before continuing.
 - If design_dna.json conflicts with content priorities, fix design_dna.json.
-- If React slides still show preset default colors after token_extensions exist, fix the slide theme variables before review.
+- If React slides do not reflect `theme_tokens`, fix the slide theme variables before review.
 - If outline.json contains filler, merge, cut, or rewrite slides.
 - If slide_blueprint.json does not specify locked copy and visual anchors, finish the blueprint before coding.
 - If slide_blueprint.json omits type scale, hierarchy, focal point, whitespace, or density guidance, finish those decisions before coding.
@@ -208,7 +208,7 @@ Responsibilities:
 - Read references/ppt-visual-design.md before reviewing.
 - Inspect the rendered deck using review/full_deck.png and review/slides/*.png.
 - Judge focal point, hierarchy, title/body/metric scale, composition, information density, whitespace, rhythm, brand consistency, audience usefulness, and craft.
-- Reject slides that are technically valid but generic, weak, sparse, cluttered, off-theme, monotonous, preset-looking, article-like, or not useful.
+- Reject slides that are technically valid but generic, weak, sparse, cluttered, off-theme, monotonous, templated, article-like, or not useful.
 - Repair React slide sources directly.
 - Run engineering validation only after AI visual review has `status: "pass"`, no blocking findings, every slide passed, and every repair_log item resolved.
 - Keep HTML preview and PPTX export needs aligned.

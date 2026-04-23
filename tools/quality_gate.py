@@ -50,12 +50,13 @@ def _check_slide_sources(workspace: PresentationWorkspace, report: QualityReport
             report.errors.append(f"{slide_file.name} missing data-ppt-slide marker")
         if "data-ppt-text" in content:
             has_text_marker = True
-        if "getDeckStylePreset" not in content and "var(--ppt-" not in content:
-            report.errors.append(f"{slide_file.name} must use a style preset or --ppt-* variables")
+        if "var(--ppt-" not in content:
+            report.errors.append(f"{slide_file.name} must use --ppt-* variables from design_dna.json.theme_tokens")
         if "../../../web/src/styles" in content or "web/src/styles" in content:
-            report.errors.append(f"{slide_file.name} imports renderer styles through web/src; use ../../styles as shown in examples/react-slides/minimal-deck")
+            report.errors.append(f"{slide_file.name} imports renderer styles through web/src; use design_dna.json.theme_tokens directly")
         if "from '../styles'" in content or 'from "../styles"' in content:
             report.errors.append(f"{slide_file.name} imports styles from ../styles; generated project slides should use ../../styles")
+        _check_marker_nesting(slide_file, content, report)
         if slide_file.stem not in imported_slides:
             report.errors.append(f"index.ts must import {slide_file.stem}")
         if export_match and slide_file.stem not in exported_slides:
@@ -69,6 +70,57 @@ def _check_slide_sources(workspace: PresentationWorkspace, report: QualityReport
         report.errors.append(f"index.ts imports missing slide file: {imported}.tsx")
     for exported in sorted(exported_slides - slide_stems):
         report.errors.append(f"index.ts exports missing slide file: {exported}.tsx")
+
+
+TAG_RE = re.compile(r"<(/?)([A-Za-z][\w.]*)\b([^<>]*?)(/?)>", re.DOTALL)
+
+
+def _has_marker(attrs: str, marker: str) -> bool:
+    return re.search(rf"(?<![\w-]){re.escape(marker)}(?![\w-])(?:\s*=\s*{{?['\"][^'\"]*['\"]}}?)?", attrs) is not None
+
+
+def _check_marker_nesting(slide_file: Path, content: str, report: QualityReport) -> None:
+    marker_stack: list[tuple[str, set[str]]] = []
+
+    for match in TAG_RE.finditer(content):
+        closing, tag_name, attrs, self_closing = match.groups()
+        if closing:
+            for index in range(len(marker_stack) - 1, -1, -1):
+                if marker_stack[index][0] == tag_name:
+                    del marker_stack[index:]
+                    break
+            continue
+
+        markers = {
+            marker
+            for marker in ("data-ppt-group", "data-ppt-item")
+            if _has_marker(attrs, marker)
+        }
+        if not markers:
+            continue
+
+        ancestor_item = any("data-ppt-item" in ancestor_markers for _, ancestor_markers in marker_stack)
+        if ancestor_item:
+            if "data-ppt-group" in markers:
+                report.errors.append(
+                    f"{slide_file.name} has nested data-ppt-group inside data-ppt-item; "
+                    "keep each repeatable card/row as a single top-level item or use raster fallback"
+                )
+            if "data-ppt-item" in markers:
+                report.errors.append(
+                    f"{slide_file.name} has nested data-ppt-item inside data-ppt-item; "
+                    "do not mark list rows inside an already itemized card"
+                )
+
+        ancestor_group = any("data-ppt-group" in ancestor_markers for _, ancestor_markers in marker_stack)
+        if ancestor_group and "data-ppt-group" in markers:
+            report.errors.append(
+                f"{slide_file.name} has nested data-ppt-group inside data-ppt-group; "
+                "use one group boundary per repeatable structure"
+            )
+
+        if not self_closing:
+            marker_stack.append((tag_name, markers))
 
 
 def _load_json(path: Path, report: QualityReport, label: str) -> dict | None:

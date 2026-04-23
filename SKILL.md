@@ -13,7 +13,7 @@ Do not treat the CLI as an article-to-PPT generator or visual designer. The CLI 
 
 ## Read Only What You Need
 
-- Start every deck: read [`references/workflow.md`](references/workflow.md).
+- Start every deck: read [`references/quickstart.md`](references/quickstart.md) and [`references/workflow.md`](references/workflow.md).
 - Before running any core agent role, including role switches performed by the same main agent: read [`references/agent-prompts.md`](references/agent-prompts.md), load the Shared Preamble, and load the exact active role prompt. Do not assume the agent has already read this skill, workflow, or system prompt.
 - Default to no sub-agent delegation. If delegation is necessary, follow the Sub-Agent Delegation Policy in [`references/workflow.md`](references/workflow.md) and [`references/agent-prompts.md`](references/agent-prompts.md); never delegate orchestration, role activation, gate approval, Design DNA ownership, slide blueprint ownership, AI visual approval, or invalidation decisions.
 - Before writing any artifact: use [`references/artifact-templates.md`](references/artifact-templates.md).
@@ -34,7 +34,7 @@ Required working contract:
 - `analysis.json`: audience-relevant facts, thesis, statistics, entities, language, and suggested theme.
 - `content_quality_report.json`: content auditor gate result. It proves the deck angle, audience, key points, and data emphasis are correct before slide generation.
 - `design_recommendation.json`: distilled `ui-ux-pro-max` recommendation used to create the deck's design system.
-- `design_dna.json`: visual system for this deck, including preset, tokens, style recipes, slide-pattern assignments, and consistency rules.
+- `design_dna.json`: visual system for this deck, including full theme tokens, style recipes, signature visual moves, slide-pattern assignments, and consistency rules.
 - `outline.json`: slide-by-slide plan with type, title, image need, and purpose notes.
 - `slide_blueprint.json`: page-by-page build plan for React slide authoring.
 - `slides/Slide_N.tsx` plus `slides/index.ts`: final React slide sources.
@@ -67,6 +67,8 @@ python3 tools/ppt_workflow.py visual-validate --project <project-id>
 python3 tools/ppt_workflow.py build --project <project-id>
 ```
 
+`review-screenshots`, `visual-validate`, `extract`, and `build` manage the preview server internally. Do not start a separate Vite server unless you are manually inspecting the browser preview.
+
 Use these when needed:
 
 ```bash
@@ -92,9 +94,9 @@ python3 tools/ppt_workflow.py export --project <project-id>
 - Role prompts are mandatory execution context. Before switching roles, re-read `references/agent-prompts.md`, load the Shared Preamble plus the active role prompt, and let that role's pass/failure conditions govern the next artifact.
 - Sub-agent delegation is optional and discouraged by default. Use it only for narrow tasks with complete role context, explicit artifact paths, clear write scope, and main-agent review.
 - Never start slide generation before the Content Quality Auditor has approved the deck angle and key points.
-- One deck, one visual system. Do not mix presets or invent unrelated styles per slide.
+- One deck, one visual system. Do not mix unrelated styles per slide.
 - Use `design_dna.json` as the style contract.
-- `design_dna.json` must be grounded in `ui-ux-pro-max` recommendations, then mapped to the closest local renderer preset. `ui-ux-pro-max` is used for cross-domain design judgment: hierarchy, layout, typography, color, spacing, chart language, and interface-level polish that transfer to PPT. It is not a signal to make a website or app.
+- `design_dna.json` must be grounded in `ui-ux-pro-max` recommendations and must define the deck's full visual system. `ui-ux-pro-max` is used for cross-domain design judgment: hierarchy, layout, typography, color, spacing, chart language, and interface-level polish that transfer to PPT. It is not a signal to make a website or app.
 - Use the React slide examples as the source of truth for import paths, `index.ts`, and marker structure before relying on validators.
 - PPT visual craft is a gate, not decoration. Weak hierarchy, oversized/undersized type, monotonous templates, poor whitespace, or generic web-card layouts must be repaired before export even when validators pass.
 - Do not let React slide authoring become a second writing pass. If approved copy is wrong, revise `slide_blueprint.json` and invalidate downstream artifacts.

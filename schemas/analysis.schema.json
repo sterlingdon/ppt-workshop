@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "type": "object",
-  "required": ["domain", "title", "key_points", "suggested_theme"],
+  "required": ["domain", "title", "key_points", "visual_direction"],
   "properties": {
     "domain": {
       "type": "string",
@@ -36,10 +36,7 @@
     },
     "entities": { "type": "array", "items": { "type": "string" } },
     "complexity": { "type": "string", "enum": ["simple", "intermediate", "expert"] },
-    "suggested_theme": {
-      "type": "string",
-      "enum": ["aurora-borealis", "bold-signal", "editorial-ink", "tokyo-neon", "venture-pitch", "midnight-cathedral", "cyberpunk-terminal", "clinical-precision", "forest-floor", "sunlit-gallery"]
-    },
+    "visual_direction": { "type": "string", "minLength": 1, "maxLength": 160 },
     "language": { "type": "string", "default": "zh" }
   }
 }

@@ -4,7 +4,7 @@ Use this reference before `design_recommendation.json`, `design_dna.json`, `outl
 
 ## `ui-ux-pro-max` Adaptation
 
-Invoke `ui-ux-pro-max` as a design director, not as a website generator.
+Invoke the available `ui-ux-pro-max` design-intelligence entry point as a design director, not as a website generator. Prefer a slides/design-oriented entry point when the environment exposes variants such as `ui-ux-pro-max:ckm:slides`; otherwise use the closest available `ui-ux-pro-max` source and record its exact name in `design_recommendation.json.source_skill`.
 
 Ask for transferable principles:
 
@@ -65,13 +65,12 @@ Avoid generic web-page composition in PPT:
 
 `design_dna.json` should turn the recommendation into enforceable rules:
 
-- `token_extensions`: colors and fonts that override local preset defaults.
+- `theme_tokens`: complete `--ppt-*` CSS variables for the deck.
 - `visual_language`: concrete recipes for panels, headings, accents, diagrams, images, and charts.
-- `slide_pattern_assignments`: varied patterns across the deck, not one template repeated.
+- `signature_visual_moves`: 2-5 distinctive visual devices that make this deck feel designed for the source material.
+- `slide_pattern_assignments`: optional custom pattern names across the deck.
 - `consistency_rules`: rules the slide author must obey in JSX.
 - `visual_mandates`: measurable expectations for focal points, data treatment, and minimum visual anchors.
-
-If a local preset conflicts with the recommendation, keep the recommendation and override the preset with tokens and recipes.
 
 ## Review Criteria
 
@@ -82,7 +81,7 @@ Reject or repair a slide when any of these are true:
 - important text is too small, clipped, low-contrast, or crowded
 - slide feels like a raw article summary
 - cards or panels repeat without priority or rhythm
-- colors look like untouched preset defaults after token overrides exist
+- colors feel generic or disconnected from the source material
 - chart/data treatment is decorative but not explanatory
 - visuals are attractive but do not help the audience understand the message
 

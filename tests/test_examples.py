@@ -34,8 +34,9 @@ def test_example_design_dna_is_the_only_design_dna_artifact():
     data = json.loads((EXAMPLE_SLIDES / "design_dna.json").read_text(encoding="utf-8"))
 
     assert data["source_skill"] == "ui-ux-pro-max"
-    assert data["preset"] == "editorial-ink"
-    assert data["token_extensions"]["--ppt-accent"] == "#C99A2E"
+    assert data["visual_direction"] == "warm editorial command center"
+    assert data["theme_tokens"]["--ppt-accent"] == "#C99A2E"
+    assert "signature_visual_moves" in data
 
 
 def test_report_examples_use_required_gate_fields():

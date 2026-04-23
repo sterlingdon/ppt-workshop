@@ -1,55 +1,39 @@
-# PPT React Renderer
+# PPT Web Renderer
 
-This Vite app is the active visual renderer for the PPT skill.
+This Vite app renders generated React slide components for browser review, engineering validation, layout extraction, and PPTX export.
 
-## Responsibilities
+## Flow
 
-- Render generated slide components from ignored `web/src/generated/slides/`, with tracked fallback examples from `web/src/sample-slides/`.
-- Provide reusable style presets from `web/src/styles/presets.ts`.
-- Provide AI-facing style guidance from `web/src/styles/STYLE_GUIDE.md`.
-- Expose two modes:
-  - normal preview mode for local browsing
-  - `?extract=1` mode for Playwright layout extraction
+- Generated project slides are activated into `web/src/generated/slides/`.
+- If no generated deck is active, tracked sample slides render as a local smoke-test deck.
+- Slide visuals come from `design_dna.json.theme_tokens` mapped into `--ppt-*` CSS variables on each slide root.
+- The renderer mounts slides, supports review navigation, and provides the `?extract=1` full-deck mode used by Playwright.
 
-## Style Presets
+## Slide Source Pattern
 
-Agents should choose a preset first, choose one of its `slidePatterns`, then build slide components from its tokens and recipes instead of inventing a new visual system per slide.
+Generated slides should define theme variables directly from the project design DNA:
 
 ```tsx
-import { getDeckStylePreset, styleVars } from '../../styles'
+import type { CSSProperties } from 'react'
 
-const preset = getDeckStylePreset('aurora-borealis')
+const designDnaTheme = {
+  '--ppt-bg': '#F7F3EA',
+  '--ppt-surface': '#FFFFFF',
+  '--ppt-primary': '#2D5A4A',
+  '--ppt-accent': '#C99A2E',
+  '--ppt-text': '#18211D',
+  '--ppt-muted': '#5D665F',
+  '--ppt-border': '#D8CCB8',
+} as CSSProperties
 
-<div style={styleVars(preset)} className="bg-[var(--ppt-bg)] text-[var(--ppt-text)]">
-  ...
-</div>
+<div style={designDnaTheme} className="bg-[var(--ppt-bg)] text-[var(--ppt-text)]">
 ```
 
-This import path is for generated project slides because they are activated into `web/src/generated/slides/` before rendering. Tracked sample slides under `web/src/sample-slides/` use a different relative path.
+Keep colors and fonts in `design_dna.json.theme_tokens`, then use `var(--ppt-*)` in JSX classes.
 
-Available presets:
+## Commands
 
-- `aurora-borealis`: dark technical, cyan-purple light, glass panels
-- `bold-signal`: business/startup, black surfaces, orange signal accents
-- `editorial-ink`: light editorial, print hierarchy, restrained red accent
-
-## Output Boundaries
-
-Generated project artifacts should go under `output/projects/<project-id>/`, not directly into `output/`. `output/` is gitignored, so generated deck source does not go to Git by default.
-
-The durable slide source for a deck is:
-
-- `output/projects/<project-id>/slides/`
-
-The active renderer slot is:
-
-- `web/src/generated/slides/`
-
-Tracked example slides live in:
-
-- `web/src/sample-slides/`
-
-Use:
+From the repository root:
 
 ```bash
 python ../tools/ppt_workflow.py snapshot-slides --project <project-id>
@@ -60,7 +44,6 @@ python ../tools/ppt_workflow.py build --project <project-id>
 
 `ppt_workflow.py build` writes:
 
-- `layout_manifest.json`
-- `assets/slide_*_bg.png`
-- `assets/slide_*_comp_*.png`
-- `presentation.pptx`
+- `output/projects/<project-id>/layout_manifest.json`
+- `output/projects/<project-id>/assets/`
+- `output/projects/<project-id>/presentation.pptx`

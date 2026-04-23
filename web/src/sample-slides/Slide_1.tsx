@@ -1,12 +1,23 @@
-import { getDeckStylePreset, styleVars } from '../styles'
+import type { CSSProperties } from 'react'
+
+const designDnaTheme = {
+  '--ppt-bg': '#080A14',
+  '--ppt-surface': 'rgba(255,255,255,0.06)',
+  '--ppt-primary': '#8B5CF6',
+  '--ppt-secondary': '#22D3EE',
+  '--ppt-accent': '#F472B6',
+  '--ppt-text': '#F8FAFC',
+  '--ppt-muted': '#A1A1AA',
+  '--ppt-border': 'rgba(255,255,255,0.14)',
+  '--ppt-font-display': 'Inter, ui-sans-serif, system-ui, sans-serif',
+  '--ppt-font-body': 'Inter, ui-sans-serif, system-ui, sans-serif',
+} as CSSProperties
 
 export default function Slide_1() {
-  const preset = getDeckStylePreset('aurora-borealis')
-
   return (
     <div
       className="w-[1920px] h-[1080px] bg-[var(--ppt-bg)] flex flex-col items-center justify-center relative overflow-hidden"
-      style={styleVars(preset)}
+      style={designDnaTheme}
       data-ppt-slide="1"
     >
       <div className="absolute top-1/4 left-1/4 w-[600px] h-[600px] bg-[var(--ppt-primary)]/30 rounded-full blur-[120px]"></div>

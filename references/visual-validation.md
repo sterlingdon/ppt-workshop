@@ -39,7 +39,7 @@ Judge each slide on:
 - audience usefulness: whether the slide helps the reader decide, believe, or remember something
 - craft: typography, contrast, alignment, color restraint, icon/chart quality, and overall finish
 
-Reject slides that feel generic, template-like, preset-looking, article-like, empty, cluttered, off-theme, or merely decorative. Also reject slides where text is technically visible but visibly too small, too uniform in weight, poorly spaced, or not integrated into a clear composition.
+Reject slides that feel generic, template-like, article-like, empty, cluttered, off-theme, or merely decorative. Also reject slides where text is technically visible but visibly too small, too uniform in weight, poorly spaced, or not integrated into a clear composition.
 
 Write `visual_review_report.json` as an AI audit artifact:
 

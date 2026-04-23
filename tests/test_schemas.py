@@ -14,20 +14,20 @@ def test_analysis_schema_valid_minimal():
         "domain": "technology",
         "title": "AI的崛起",
         "key_points": ["LLM改变了世界"],
-        "suggested_theme": "aurora-borealis"
+        "visual_direction": "luminous AI research briefing"
     }
     jsonschema.validate(data, schema)
 
 def test_analysis_schema_invalid_domain():
     schema = load_schema("analysis")
-    data = {"domain": "invalid", "title": "x", "key_points": ["y"], "suggested_theme": "aurora-borealis"}
+    data = {"domain": "invalid", "title": "x", "key_points": ["y"], "visual_direction": "compact evidence brief"}
     with pytest.raises(jsonschema.ValidationError):
         jsonschema.validate(data, schema)
 
 def test_outline_schema_slide_count_min():
     schema = load_schema("outline")
     data = {
-        "theme": "aurora-borealis",
+        "theme": "luminous AI research briefing",
         "style_constraints": {
             "heading_emphasis": "gradient",
             "card_style": "glass",

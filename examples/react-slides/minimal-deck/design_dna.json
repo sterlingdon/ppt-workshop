@@ -1,10 +1,11 @@
 {
   "source_skill": "ui-ux-pro-max",
-  "recommendation_summary": "Quiet editorial operations deck with warm paper background, deep green authority color, muted gold accents, and restrained rule lines.",
-  "preset": "editorial-ink",
+  "recommendation_summary": "Editorial operations deck with warm archival paper, deep green authority color, muted gold accents, restrained rule lines, and publication-grade information hierarchy.",
+  "visual_direction": "warm editorial command center",
+  "renderer_contract": "Use --ppt-* CSS variables directly from this design DNA.",
   "font_display": "Inter, ui-sans-serif, system-ui, sans-serif",
   "font_body": "Inter, ui-sans-serif, system-ui, sans-serif",
-  "token_extensions": {
+  "theme_tokens": {
     "--ppt-bg": "#F7F3EA",
     "--ppt-surface": "#FFFFFF",
     "--ppt-surface-strong": "#EDE6D8",
@@ -27,14 +28,16 @@
     "chart_recipe": "simple editorial charts with deep green primary data and gold highlight annotations",
     "image_mood": ["editorial", "warm paper", "operations", "calm authority"]
   },
-  "slide_pattern_assignments": {
-    "title": "ink-feature-story",
-    "card-grid": "ink-two-column-brief"
-  },
+  "signature_visual_moves": [
+    "oversized editorial title blocks with thin gold rule anchors",
+    "paper-grid background that feels like an operations map rather than a stock template",
+    "deep green evidence panels with restrained gold markers for executive emphasis"
+  ],
+  "slide_pattern_assignments": {},
   "consistency_rules": [
-    "Use token_extensions as CSS variable overrides on every slide root.",
-    "Do not use the preset default red accent when design_dna overrides --ppt-accent.",
-    "Do not hardcode visual colors directly in JSX; map ui-ux-pro-max colors into --ppt-* variables first."
+    "Use theme_tokens as the full visual theme on every slide root.",
+    "Do not hardcode visual colors directly in JSX; map ui-ux-pro-max colors into --ppt-* variables first.",
+    "Every slide needs at least one signature visual move from this design DNA."
   ],
   "type_scale": {
     "title_px": "60-84",

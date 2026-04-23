@@ -1,4 +1,4 @@
-import { getDeckStylePreset, styleVars } from '../../styles'
+import type { CSSProperties } from 'react'
 
 const lockedCopy = {
   eyebrow: '内容策略简报',
@@ -6,16 +6,29 @@ const lockedCopy = {
   subtitle: '先锁定受众、论点和视觉方向，再进入 React slide authoring。',
 }
 
-export default function Slide_1() {
-  const preset = getDeckStylePreset('bold-signal')
+const designDnaTheme = {
+  '--ppt-bg': '#F7F3EA',
+  '--ppt-surface': '#FFFFFF',
+  '--ppt-surface-strong': '#EDE6D8',
+  '--ppt-primary': '#2D5A4A',
+  '--ppt-secondary': '#6C7A62',
+  '--ppt-accent': '#C99A2E',
+  '--ppt-text': '#18211D',
+  '--ppt-muted': '#5D665F',
+  '--ppt-border': '#D8CCB8',
+  '--ppt-font-display': 'Inter, ui-sans-serif, system-ui, sans-serif',
+  '--ppt-font-body': 'Inter, ui-sans-serif, system-ui, sans-serif',
+} as CSSProperties
 
+export default function Slide_1() {
   return (
     <div
       data-ppt-slide="1"
-      style={styleVars(preset)}
+      style={designDnaTheme}
       className="relative h-[1080px] w-[1920px] overflow-hidden bg-[var(--ppt-bg)] text-[var(--ppt-text)]"
     >
-      <div data-ppt-bg className="absolute inset-0 bg-[radial-gradient(circle_at_78%_24%,rgba(245,158,11,0.24),transparent_28%),linear-gradient(135deg,var(--ppt-bg),var(--ppt-surface))]" />
+      <div data-ppt-bg className="absolute inset-0 bg-[linear-gradient(90deg,color-mix(in_srgb,var(--ppt-primary)_7%,transparent)_1px,transparent_1px),linear-gradient(180deg,color-mix(in_srgb,var(--ppt-primary)_6%,transparent)_1px,transparent_1px)] bg-[length:88px_88px]" />
+      <div data-ppt-bg className="absolute right-[122px] top-[110px] h-[760px] w-[520px] border-l border-[var(--ppt-border)] bg-[linear-gradient(180deg,color-mix(in_srgb,var(--ppt-primary)_12%,transparent),transparent)]" />
       <div className="absolute left-[140px] top-[142px] w-[1060px]">
         <p data-ppt-text className="mb-10 text-[34px] font-semibold uppercase tracking-[0.14em] text-[var(--ppt-accent)]">
           {lockedCopy.eyebrow}
@@ -27,8 +40,8 @@ export default function Slide_1() {
           {lockedCopy.subtitle}
         </p>
       </div>
-      <div data-ppt-bg className="absolute bottom-[112px] right-[128px] h-[360px] w-[520px] border border-[var(--ppt-border)] bg-[color-mix(in_srgb,var(--ppt-surface)_82%,transparent)] p-10">
-        <div className="h-full w-full bg-[linear-gradient(90deg,var(--ppt-accent)_0_18px,transparent_18px),repeating-linear-gradient(180deg,var(--ppt-border)_0_2px,transparent_2px_54px)] opacity-80" />
+      <div data-ppt-bg className="absolute bottom-[112px] right-[128px] h-[360px] w-[520px] border border-[var(--ppt-border)] bg-[color-mix(in_srgb,var(--ppt-surface)_88%,transparent)] p-10">
+        <div className="h-full w-full bg-[linear-gradient(90deg,var(--ppt-accent)_0_18px,transparent_18px),repeating-linear-gradient(180deg,var(--ppt-border)_0_2px,transparent_2px_54px),linear-gradient(90deg,transparent_0_70%,color-mix(in_srgb,var(--ppt-primary)_16%,transparent)_70%_100%)] opacity-90" />
       </div>
     </div>
   )

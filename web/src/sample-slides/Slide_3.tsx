@@ -1,4 +1,4 @@
-import { getDeckStylePreset, styleVars } from '../styles'
+import type { CSSProperties } from 'react'
 
 const items = [
   { id: 'a', title: 'Item-level capture', body: 'Each row can be copied or removed.' },
@@ -6,13 +6,20 @@ const items = [
   { id: 'c', title: 'Visual fallback', body: 'Complex visuals remain rasterized.' },
 ]
 
-export default function Slide_3() {
-  const preset = getDeckStylePreset('aurora-borealis')
+const designDnaTheme = {
+  '--ppt-bg': '#080A14',
+  '--ppt-surface': 'rgba(255,255,255,0.06)',
+  '--ppt-secondary': '#22D3EE',
+  '--ppt-text': '#F8FAFC',
+  '--ppt-muted': '#A1A1AA',
+  '--ppt-border': 'rgba(255,255,255,0.14)',
+} as CSSProperties
 
+export default function Slide_3() {
   return (
     <div
       className="w-[1920px] h-[1080px] bg-[var(--ppt-bg)] p-24"
-      style={styleVars(preset)}
+      style={designDnaTheme}
       data-ppt-slide="3"
     >
       <h2 data-ppt-text className="mb-12 text-6xl font-black text-[var(--ppt-text)]">

@@ -84,7 +84,7 @@ Update `active_role` at every role activation. Set it to the role currently gove
   ],
   "entities": [],
   "complexity": "intermediate",
-  "suggested_theme": "bold-signal",
+  "visual_direction": "",
   "language": "zh",
   "tone": ""
 }
@@ -132,9 +132,11 @@ When the auditor requests changes, keep the loop explicit:
 
 ## `design_recommendation.json`
 
-Raw design-intelligence output distilled from `ui-ux-pro-max`. This file preserves the external recommendation before it is mapped to local renderer presets.
+Raw design-intelligence output distilled from the available `ui-ux-pro-max` entry point. This file preserves the external recommendation before it is converted into `design_dna.json`.
 
 The `query` must make the adaptation explicit: use `ui-ux-pro-max` for transferable web/product design principles, then adapt them to a fixed 16:9 PowerPoint deck. Do not ask for a website or app layout.
+
+Set `source_skill` to the exact design-intelligence entry point used, such as `ui-ux-pro-max`, `ui-ux-pro-max:ckm:slides`, or the closest available `ui-ux-pro-max:*` variant.
 
 ```json
 {
@@ -176,13 +178,22 @@ The `query` must make the adaptation explicit: use `ui-ux-pro-max` for transfera
 {
   "source_skill": "ui-ux-pro-max",
   "recommendation_summary": "",
-  "preset": "bold-signal",
+  "visual_direction": "",
+  "renderer_contract": "Use --ppt-* CSS variables directly from this design DNA.",
   "font_display": "",
   "font_body": "",
-  "token_extensions": {
+  "theme_tokens": {
+    "--ppt-bg": "",
+    "--ppt-surface": "",
+    "--ppt-surface-strong": "",
     "--ppt-primary": "",
     "--ppt-secondary": "",
     "--ppt-accent": "",
+    "--ppt-text": "",
+    "--ppt-muted": "",
+    "--ppt-border": "",
+    "--ppt-font-display": "",
+    "--ppt-font-body": "",
     "--ppt-chart-1": "",
     "--ppt-chart-2": "",
     "--ppt-chart-3": ""
@@ -196,6 +207,7 @@ The `query` must make the adaptation explicit: use `ui-ux-pro-max` for transfera
     "chart_recipe": "",
     "image_mood": []
   },
+  "signature_visual_moves": [],
   "slide_pattern_assignments": {},
   "consistency_rules": [],
   "type_scale": {
@@ -220,7 +232,7 @@ The `query` must make the adaptation explicit: use `ui-ux-pro-max` for transfera
 }
 ```
 
-Every non-empty `token_extensions` value must be reflected in React slide theme variables. The slide root should spread `styleVars(preset)` first, then spread the `token_extensions` override object so the ui-ux-pro-max recommendation controls the actual rendered deck.
+Every non-empty `theme_tokens` value must be reflected in React slide theme variables. The slide root should apply `theme_tokens` directly.
 
 `type_scale` and `composition_rules` are required design decisions even if the exact numeric values vary by deck. They prevent agents from leaving font size, hierarchy, and spacing to improvised JSX.
 
@@ -228,7 +240,7 @@ Every non-empty `token_extensions` value must be reflected in React slide theme 
 
 ```json
 {
-  "theme": "bold-signal",
+  "theme": "",
   "style_constraints": {
     "heading_emphasis": "solid",
     "card_style": "solid-surface",

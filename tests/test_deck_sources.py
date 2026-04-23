@@ -11,12 +11,16 @@ def write_active_deck(slides_dir: Path, title: str = "Demo") -> None:
     slides_dir.mkdir(parents=True, exist_ok=True)
     (slides_dir / "Slide_1.tsx").write_text(
         f"""
-import {{ getDeckStylePreset, styleVars }} from '../../styles'
+import type {{ CSSProperties }} from 'react'
+
+const designDnaTheme = {{
+  '--ppt-bg': '#F7F3EA',
+  '--ppt-text': '#18211D',
+}} as CSSProperties
 
 export default function Slide_1() {{
-  const preset = getDeckStylePreset('aurora-borealis')
   return (
-    <div style={{styleVars(preset)}} data-ppt-slide="1">
+    <div style={{designDnaTheme}} className="bg-[var(--ppt-bg)] text-[var(--ppt-text)]" data-ppt-slide="1">
       <h1 data-ppt-text="true">{title}</h1>
     </div>
   )

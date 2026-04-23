@@ -89,40 +89,29 @@ Other commands:
 
 ## Style System
 
-The active renderer uses `web/src/styles/presets.ts`.
+Generated project slides use `design_dna.json.theme_tokens` as the visual source of truth.
 
-Current presets:
-
-| Preset | Primary Use |
-| --- | --- |
-| `aurora-borealis` | technology, AI, cybersecurity |
-| `bold-signal` | business, startup, finance, decision decks |
-| `editorial-ink` | education, culture, content reports |
-
-Slide components should use:
+Slide components should map the design DNA into CSS variables:
 
 ```tsx
-import { getDeckStylePreset, styleVars } from '../../styles'
+import type { CSSProperties } from 'react'
 
-const preset = getDeckStylePreset('bold-signal')
-
-<div style={styleVars(preset)} className="bg-[var(--ppt-bg)] text-[var(--ppt-text)]">
-```
-
-Read `references/ppt-visual-design.md`, then use `ui-ux-pro-max` before writing `design_recommendation.json` or `design_dna.json`. The `ui-ux-pro-max` query must ask for transferable web/product design principles adapted to a fixed 16:9 PowerPoint deck, not a website/app layout. Save its distilled output as `design_recommendation.json`, then use `design_dna.json` to extend preset variables and lock deck-specific visual rules.
-
-The local preset is an implementation scaffold, not the design source. If `ui-ux-pro-max` recommends a different visual language, preserve that direction through `token_extensions`, `visual_language`, `type_scale`, `composition_rules`, and `consistency_rules` while choosing the closest renderer preset.
-
-When `design_dna.json.token_extensions` overrides preset tokens, apply those variables after `styleVars(preset)`:
-
-```tsx
-const themeVars = {
-  ...styleVars(preset),
+const designDnaTheme = {
   '--ppt-bg': '#F7F3EA',
+  '--ppt-surface': '#FFFFFF',
   '--ppt-primary': '#2D5A4A',
   '--ppt-accent': '#C99A2E',
+  '--ppt-text': '#18211D',
+  '--ppt-muted': '#5D665F',
+  '--ppt-border': '#D8CCB8',
 } as CSSProperties
+
+<div style={designDnaTheme} className="bg-[var(--ppt-bg)] text-[var(--ppt-text)]">
 ```
+
+Read `references/ppt-visual-design.md`, then use `ui-ux-pro-max` before writing `design_recommendation.json` or `design_dna.json`. The `ui-ux-pro-max` query must ask for transferable web/product design principles adapted to a fixed 16:9 PowerPoint deck, not a website/app layout. Save its distilled output as `design_recommendation.json`, then use `design_dna.json` to define theme variables and lock deck-specific visual rules.
+
+`design_dna.json` is the design source. Preserve the recommendation through `theme_tokens`, `visual_language`, `signature_visual_moves`, `type_scale`, `composition_rules`, and `consistency_rules`.
 
 See `examples/react-slides/minimal-deck/Slide_3.tsx` for the full pattern.
 
@@ -149,7 +138,7 @@ Do not put `data-ppt-bg` and `data-ppt-text` on the same element unless the slid
 - `Slide_*.tsx` files exist
 - each slide has `data-ppt-slide`
 - the deck has at least one `data-ppt-text`
-- slide code uses style presets or `--ppt-*` variables
+- slide code uses `--ppt-*` variables from `design_dna.json.theme_tokens`
 - manifest-referenced assets exist when outputs are checked
 - `presentation.pptx` is not empty when present
 
@@ -188,7 +177,7 @@ For diagrams, icons, charts, and atmospheric visuals, prefer React/SVG/CSS imple
 
 ## Troubleshooting
 
-- `validate` fails: fix missing `index.ts`, missing `Slide_*.tsx`, missing `data-ppt-slide`, missing `data-ppt-text`, or missing style preset variables.
+- `validate` fails: fix missing `index.ts`, missing `Slide_*.tsx`, missing `data-ppt-slide`, missing `data-ppt-text`, or missing `--ppt-*` theme variables.
 - `visual-validate` fails: fix clipped, hidden, covered, missing, or overflowing content in the browser preview.
 - PPTX has missing item graphics: check `data-ppt-group`, `data-ppt-item`, and item bounding boxes.
 - Text appears twice: check whether text stayed visible in a raster while also exporting as native text.

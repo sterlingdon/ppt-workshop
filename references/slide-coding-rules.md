@@ -28,6 +28,17 @@ Visual fidelity is the product floor. Do not simplify visual design to make Powe
 | `data-ppt-track` | Shared rail or track. | `div`, `svg`. | Captured independently when present. |
 | `data-ppt-segment` | Connector segment. | `div`, `svg`, line wrapper. | Captured as segment raster. |
 
+## Marker Nesting Contract
+
+The extractor hides and reveals `data-ppt-item` nodes while capturing each item. Nested item-aware markers can make the target element invisible during Playwright screenshot capture.
+
+- Use exactly one `data-ppt-group` boundary for a repeatable structure.
+- Put `data-ppt-item` on the immediate repeatable unit: the card, row, step, or timeline node.
+- Do not put `data-ppt-group` inside `data-ppt-item`.
+- Do not put `data-ppt-item` inside another `data-ppt-item`.
+- Do not nest `data-ppt-group` inside another `data-ppt-group`.
+- For a list inside a card, leave the inner `ul/li` unmarked, or export the whole card with a raster fallback.
+
 ## Optional Overrides
 
 | Attribute | Values | Behavior |
@@ -48,6 +59,7 @@ Visual fidelity is the product floor. Do not simplify visual design to make Powe
 ## Non-Negotiable Rules
 
 - Do not bake item-specific bullets, cards, icons, timeline nodes, labels, or item shadows into the parent background.
+- Do not nest item-aware markers. `validate` rejects nested `data-ppt-group`/`data-ppt-item` structures because they can make export screenshots time out.
 - Do not use `::before` or `::after` for item-specific visuals that should become independent PPT objects.
 - Keep `data-ppt-text` inside the relevant `data-ppt-item`.
 - Do not put `data-ppt-text` on a complex label unless you also mark it with `data-ppt-native-text="skip"`.
@@ -81,6 +93,7 @@ Visual fidelity is the product floor. Do not simplify visual design to make Powe
 ## Common Mistakes
 
 - Wrong: one `data-ppt-bg` wrapper contains all list bullets and item cards.
+- Wrong: a `data-ppt-item` card contains an inner `data-ppt-group="list"` or inner `li data-ppt-item`.
 - Wrong: bullet dots are CSS pseudo-elements on `li::before`.
 - Wrong: timeline nodes are drawn into a single background SVG while labels are separate text.
 - Correct: every repeatable row, card, node, or step has its own `data-ppt-item`.

@@ -196,8 +196,8 @@ Must do:
 - use `ui-ux-pro-max` for transferable web/product design principles that improve a fixed 16:9 PPT deck: visual hierarchy, type scale, palette, spacing, chart language, component polish, and avoid-rules
 - explicitly tell `ui-ux-pro-max` not to produce website/app navigation, forms, responsive screens, hover states, or interaction flows unless the slide content itself is about a product UI
 - save the distilled recommendation as `design_recommendation.json`
-- map the external design recommendation to the closest local renderer preset
-- map ui-ux-pro-max color and typography recommendations into `design_dna.json.token_extensions`, then apply those token overrides after `styleVars(preset)` in every slide root
+- convert the external design recommendation into a complete `design_dna.json` visual system
+- map ui-ux-pro-max color and typography recommendations into `design_dna.json.theme_tokens`, then apply those variables directly on every slide root
 - create an outline where every slide has a clear job
 - create `slide_blueprint.json` before writing React code, including locked copy for every human-facing text string plus visual hierarchy, type-scale, focal-point, whitespace, and density decisions
 - follow `examples/react-slides/minimal-deck/` for import paths, marker structure, and `index.ts`
@@ -235,7 +235,7 @@ Must do:
 - read `references/ppt-visual-design.md` before reviewing
 - inspect slides with an AI visual lens, not just a DOM validator
 - use `review/full_deck.png` and `review/slides/*.png` as the review inputs
-- reject weak, generic, cluttered, off-theme, preset-looking, article-like, or low-value slides, including slides with poor font sizing, weak hierarchy, cramped spacing, or no clear focal point
+- reject weak, generic, cluttered, off-theme, article-like, or low-value slides, including slides with poor font sizing, weak hierarchy, cramped spacing, or no clear focal point
 - repair React slides directly
 - run engineering validation only after AI visual review has no blocking findings
 
@@ -244,7 +244,7 @@ Must do:
 1. **Ingest**: extract clean source into `article_text.md` and initialize `deck_state.json`. Remove navigation, ads, boilerplate, and irrelevant appendix material.
 2. **Content Quality Audit**: activate the Content Quality Auditor role prompt, set `deck_state.json.active_role` to `content_quality_auditor`, then create `analysis.json` and `content_quality_report.json`. If the auditor sets `status: "needs_revision"`, repair the affected content artifacts, record resolved items in `resolution_log`, and re-run the audit until `status: "pass"`, `blocking_findings == 0`, `required_revisions == []`, and every `resolution_log` item is `resolved`.
 3. **Design Intelligence**: read `references/ppt-visual-design.md`, then invoke `ui-ux-pro-max` with the approved deck domain, audience, tone, complexity, source thesis, and desired presentation goal. The query must state that `ui-ux-pro-max` is being used for transferable web/product design principles adapted to a fixed 16:9 PowerPoint deck, not for website or app UI generation. Save the distilled style, palette, typography, layout, chart, and UX-quality recommendations to `design_recommendation.json`.
-4. **Design DNA**: create `design_dna.json` from the `ui-ux-pro-max` recommendations. Map the recommended visual direction to the closest local renderer preset, then add token extensions, visual recipes, slide-pattern assignments, and consistency rules. If token extensions override preset colors or fonts, React slides must spread those overrides after `styleVars(preset)`.
+4. **Design DNA**: create `design_dna.json` from the `ui-ux-pro-max` recommendations. Define a complete visual system: visual direction, full `theme_tokens`, visual recipes, signature visual moves, slide-pattern assignments, and consistency rules. React slides must apply `theme_tokens` directly.
 5. **Outline**: create `outline.json`. Every slide needs a type, title, and one sentence explaining its job. The outline must reflect `content_quality_report.json`.
 6. **Slide Blueprint**: create `slide_blueprint.json` with each slide's role, key message, supporting evidence, `locked_copy`, flattened `required_texts`, visual anchor, layout pattern, type-scale guidance, hierarchy plan, whitespace strategy, density target, and marker requirements. `locked_copy` is what React renders; `required_texts` is only a validation-friendly flattening of the same copy.
 7. **PPT Generation**: activate the PPT Generation Agent role prompt, set `deck_state.json.active_role` to `ppt_generation_agent`, then write slide components in `output/projects/<project-id>/slides/`. Each slide root is 1920x1080 and has `data-ppt-slide`.
@@ -267,6 +267,8 @@ Must do:
 - `snapshot-slides`: copies active generated slides back into the project.
 - `extract`: activates slides and writes `layout_manifest.json` plus assets.
 - `export`: builds PPTX from an existing manifest.
+
+`review-screenshots`, `visual-validate`, `extract`, and `build` manage the preview server internally. They reuse an open server on the requested port when available and stop only the server they started themselves.
 
 ## Invalidation Rules
 

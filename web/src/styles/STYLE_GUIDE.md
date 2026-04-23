@@ -1,23 +1,19 @@
-# PPT Style Preset Guide
+# PPT Design DNA Guide
 
-Agents should not invent a complete visual language per deck. Choose one preset, then choose slide patterns from that preset.
+The visual system comes from `design_dna.json`, which is created from the `ui-ux-pro-max` recommendation for the specific source material.
 
 ## Workflow
 
-Start from `examples/react-slides/minimal-deck/README.md` when authoring generated project slides. It shows the import path and marker structure used after activation into `web/src/generated/slides/`.
+Start from `examples/react-slides/minimal-deck/README.md` when authoring generated project slides. It shows the marker structure and how to map design DNA into React.
 
-1. Pick a preset from `presets.ts` based on domain and tone.
-2. Use `getDeckStylePreset()` and `styleVars()` in each slide root.
-3. Choose a `slidePatterns[].id` for every slide before writing JSX.
-4. Use `--ppt-*` CSS variables for color and typography.
-5. If `design_dna.json.token_extensions` overrides preset values, spread those overrides after `styleVars(preset)`.
+1. Read `design_dna.json` before writing JSX.
+2. Copy `design_dna.json.theme_tokens` into a slide-level `CSSProperties` object.
+3. Use `--ppt-*` CSS variables for color, typography, surfaces, borders, and chart colors.
+4. Implement at least one `signature_visual_moves` idea on every slide.
+5. Follow `type_scale` and `composition_rules`; do not improvise font sizes after copy is locked.
 6. Mark the root with `data-ppt-slide`, visual screenshot regions with `data-ppt-bg`, and editable text with `data-ppt-text`.
 
-## Current Presets
-
-- `aurora-borealis`: technical, AI, cybersecurity, deep dark visual impact.
-- `bold-signal`: business, startup, finance, decision-making decks.
-- `editorial-ink`: education, culture, content reports, narrative decks.
+Generated project slides should keep theme values in the project artifact and slide source.
 
 ## Marker Contract
 

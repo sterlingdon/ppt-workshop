@@ -1,17 +1,16 @@
 import type { CSSProperties } from 'react'
-import { getDeckStylePreset, styleVars } from '../../styles'
 
 const lockedCopy = {
-  title: '把设计建议落到变量覆盖',
-  subtitle: 'preset 只提供结构脚手架；真实颜色、字体和视觉语气来自 design_dna.token_extensions。',
+  title: '让设计 DNA 成为唯一视觉源头',
+  subtitle: 'ui-ux-pro-max 给出完整视觉方向；React slide 只把 design_dna.theme_tokens 和视觉动作落实到画面。',
   rows: [
     ['ui-ux-pro-max', '给出暖纸色、深绿色、金色强调和克制线条'],
-    ['design_dna.json', '把建议映射到 --ppt-bg、--ppt-primary、--ppt-accent 等变量'],
-    ['React slide', '在 styleVars(preset) 之后覆盖变量，所有 className 继续使用 var(--ppt-*)'],
+    ['design_dna.json', '定义 theme_tokens、signature_visual_moves、type_scale 和 composition_rules'],
+    ['React slide', '直接使用 design_dna 变量，并把视觉动作落实成可审查画面'],
   ],
 }
 
-const designDnaTokenExtensions = {
+const designDnaTheme = {
   '--ppt-bg': '#F7F3EA',
   '--ppt-surface': '#FFFFFF',
   '--ppt-surface-strong': '#EDE6D8',
@@ -21,19 +20,15 @@ const designDnaTokenExtensions = {
   '--ppt-text': '#18211D',
   '--ppt-muted': '#5D665F',
   '--ppt-border': '#D8CCB8',
+  '--ppt-font-display': 'Inter, ui-sans-serif, system-ui, sans-serif',
+  '--ppt-font-body': 'Inter, ui-sans-serif, system-ui, sans-serif',
 } as CSSProperties
 
 export default function Slide_3() {
-  const preset = getDeckStylePreset('editorial-ink')
-  const themeVars = {
-    ...styleVars(preset),
-    ...designDnaTokenExtensions,
-  } as CSSProperties
-
   return (
     <div
       data-ppt-slide="3"
-      style={themeVars}
+      style={designDnaTheme}
       className="relative h-[1080px] w-[1920px] overflow-hidden bg-[var(--ppt-bg)] px-[128px] py-[92px] text-[var(--ppt-text)]"
     >
       <div data-ppt-bg className="absolute inset-0 bg-[linear-gradient(90deg,color-mix(in_srgb,var(--ppt-primary)_7%,transparent)_1px,transparent_1px),linear-gradient(180deg,color-mix(in_srgb,var(--ppt-primary)_6%,transparent)_1px,transparent_1px)] bg-[length:80px_80px]" />

@@ -8,12 +8,16 @@ from tools.quality_gate import validate_project
 
 
 VALID_SLIDE = """
-import { getDeckStylePreset, styleVars } from '../../styles'
+import type { CSSProperties } from 'react'
+
+const designDnaTheme = {
+  '--ppt-bg': '#F7F3EA',
+  '--ppt-text': '#18211D',
+} as CSSProperties
 
 export default function Slide_1() {
-  const preset = getDeckStylePreset('aurora-borealis')
   return (
-    <div style={styleVars(preset)} data-ppt-slide="1">
+    <div style={designDnaTheme} className="bg-[var(--ppt-bg)] text-[var(--ppt-text)]" data-ppt-slide="1">
       <h1 data-ppt-text="true">Valid</h1>
     </div>
   )
@@ -37,6 +41,45 @@ def test_validate_project_passes_for_minimal_valid_deck(tmp_path):
 
     assert report.ok
     assert report.errors == []
+
+
+def test_validate_project_rejects_nested_item_markers(tmp_path):
+    workspace = create_project_workspace("Nested Item Deck", root_dir=tmp_path, project_id="nested-item")
+    (workspace.slides_dir / "Slide_1.tsx").write_text(
+        """
+import type { CSSProperties } from 'react'
+
+const designDnaTheme = {
+  '--ppt-bg': '#F7F3EA',
+  '--ppt-text': '#18211D',
+} as CSSProperties
+
+export default function Slide_1() {
+  return (
+    <div style={designDnaTheme} className="bg-[var(--ppt-bg)] text-[var(--ppt-text)]" data-ppt-slide="1">
+      <div data-ppt-group="card-grid">
+        <article data-ppt-item>
+          <h2 data-ppt-text="true">Outer Card</h2>
+          <ul data-ppt-group="list">
+            <li data-ppt-item>
+              <span data-ppt-text="true">Nested row</span>
+            </li>
+          </ul>
+        </article>
+      </div>
+    </div>
+  )
+}
+""".strip(),
+        encoding="utf-8",
+    )
+    write_index(workspace.slides_dir)
+
+    report = validate_project(workspace)
+
+    assert not report.ok
+    assert any("nested data-ppt-group inside data-ppt-item" in error for error in report.errors)
+    assert any("nested data-ppt-item inside data-ppt-item" in error for error in report.errors)
 
 
 def test_validate_project_fails_without_slide_marker(tmp_path):
@@ -112,7 +155,17 @@ def test_quality_gate_rejects_empty_manifest_slides(tmp_path):
 def test_quality_gate_rejects_wrong_renderer_style_import(tmp_path):
     workspace = create_project_workspace("Bad Import Deck", root_dir=tmp_path, project_id="bad-import")
     (workspace.slides_dir / "Slide_1.tsx").write_text(
-        VALID_SLIDE.replace("../../styles", "../../../web/src/styles/presets"),
+        """
+import { theme } from '../../../web/src/styles'
+
+export default function Slide_1() {
+  return (
+    <div style={theme} className="bg-[var(--ppt-bg)] text-[var(--ppt-text)]" data-ppt-slide="1">
+      <h1 data-ppt-text="true">Bad Import</h1>
+    </div>
+  )
+}
+""".strip(),
         encoding="utf-8",
     )
     write_index(workspace.slides_dir)
@@ -120,7 +173,7 @@ def test_quality_gate_rejects_wrong_renderer_style_import(tmp_path):
     report = validate_project(workspace)
 
     assert not report.ok
-    assert any("use ../../styles" in error for error in report.errors)
+    assert any("use design_dna.json.theme_tokens directly" in error for error in report.errors)
 
 
 def test_quality_gate_rejects_index_missing_slide_export(tmp_path):

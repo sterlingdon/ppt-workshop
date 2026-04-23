@@ -1,18 +1,16 @@
 import asyncio
 import argparse
 import json
-import os
-import signal
-import subprocess
-import time
 from playwright.async_api import async_playwright
 
 try:
     from .presentation_workspace import create_project_workspace, get_project_workspace
     from .item_manifest import make_box, make_group, make_item
+    from .preview_server import managed_preview_server
 except ImportError:
     from presentation_workspace import create_project_workspace, get_project_workspace
     from item_manifest import make_box, make_group, make_item
+    from preview_server import managed_preview_server
 
 
 TEXT_STYLE_JS = """el => {
@@ -96,20 +94,8 @@ async def extract_layout_and_assets(web_dir="web", workspace=None, port=5173):
     workspace.assets_dir.mkdir(parents=True, exist_ok=True)
     cleanup_extracted_assets(workspace.assets_dir)
 
-    # 隐式拉起 Vite 服务
-    print(">>> [Phase 1] 正在启动 Vite 渲染器...")
-    vite_process = subprocess.Popen(
-        ["npm", "run", "dev", "--", "--port", str(port)],
-        cwd=str(web_dir),
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        start_new_session=True,  # new process group → killpg cleans up all Vite children
-    )
-
-    # 给 Vite 几秒钟启动时间
-    time.sleep(3)
-
-    try:
+    print(">>> [Phase 1] 正在准备 Vite 渲染器...")
+    with managed_preview_server(web_dir, port=port) as server:
         async with async_playwright() as p:
             print(">>> [Phase 2] 无头浏览器就绪，开始解剖提取！")
             browser = await p.chromium.launch(headless=True)
@@ -118,7 +104,7 @@ async def extract_layout_and_assets(web_dir="web", workspace=None, port=5173):
 
             # 定制 1920x1080 标准 PPT 规格
             await page.set_viewport_size({"width": 1920, "height": 1080})
-            await page.goto(f"http://localhost:{port}/?extract=1")
+            await page.goto(f"{server.url}/?extract=1")
 
             # 等待所有框架渲染完成
             await page.wait_for_timeout(2000)
@@ -317,21 +303,6 @@ async def extract_layout_and_assets(web_dir="web", workspace=None, port=5173):
                 json.dump({"slides": slides_data}, f, indent=4, ensure_ascii=False)
 
             print(f">>> [Phase 3] 提取成功，布局清单写入 {workspace.manifest_path}")
-
-    finally:
-        # Kill the process group so Vite's forked child processes are cleaned up too
-        try:
-            os.killpg(os.getpgid(vite_process.pid), signal.SIGTERM)
-        except Exception:
-            vite_process.terminate()
-        try:
-            vite_process.wait(timeout=5)
-        except subprocess.TimeoutExpired:
-            try:
-                os.killpg(os.getpgid(vite_process.pid), signal.SIGKILL)
-            except Exception:
-                vite_process.kill()
-            vite_process.wait(timeout=5)
 
 
 def parse_args():

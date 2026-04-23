@@ -65,7 +65,7 @@ The recommendation must come from invoking or applying `ui-ux-pro-max` using the
 - desired reader decision or takeaway
 - content priorities from `content_quality_report.json`
 
-Must preserve the external design-intelligence step before the recommendation is mapped into the local renderer.
+Must preserve the external design-intelligence step before the recommendation is converted into the deck's design DNA.
 
 `ui-ux-pro-max` is used here as a transferable design intelligence source, not as a literal website/app builder. The query must ask it to adapt web/product design principles to a fixed 16:9 PowerPoint deck and must not request navigation, forms, responsive app screens, hover states, or app interaction flows unless those are part of the slide subject.
 
@@ -84,22 +84,24 @@ Must preserve the external design-intelligence step before the recommendation is
 - `motion_guidance`
 - `avoid`
 
-Do not skip this file. Without it, reviewers cannot tell whether `design_dna.json` came from real design intelligence or from a local preset guess.
+Do not skip this file. Without it, reviewers cannot tell whether `design_dna.json` came from real design intelligence or from a local template guess.
 
 ## `design_dna.json`
 
 Must be created after `content_quality_report.json` passes and after `design_recommendation.json` has been saved.
 
-Use the external recommendation as the creative source of truth. The local renderer preset is only an implementation scaffold.
+Use the external recommendation as the creative source of truth.
 
 `design_dna.json` must define:
 
 - `source_skill`: `ui-ux-pro-max`
 - `recommendation_summary`: concise summary of the style, palette, typography, layout, and chart guidance received.
-- `preset`: one of the style presets in `web/src/styles/presets.ts`, chosen as the closest scaffold to the external recommendation.
-- `token_extensions`: deck-specific `--ppt-*` variables.
+- `visual_direction`: a short named direction specific to the source material.
+- `renderer_contract`: state that generated slides use `--ppt-*` variables directly from this design DNA.
+- `theme_tokens`: complete deck-specific `--ppt-*` variables.
 - `visual_language`: card, heading, accent, background, and image/diagram recipes.
-- `slide_pattern_assignments`: which preset pattern each slide type should use.
+- `signature_visual_moves`: distinctive visual devices that make this deck feel designed, not templated.
+- `slide_pattern_assignments`: optional custom pattern names for recurring slide jobs.
 - `consistency_rules`: hard rules the slide author must not violate.
 - `type_scale`: deck-level title, label, body, and metric size ranges.
 - `composition_rules`: deck-level margin, focal point, density, and whitespace rules.
@@ -107,19 +109,13 @@ Use the external recommendation as the creative source of truth. The local rende
 
 Use `design_dna.json` before writing any slide JSX. It prevents the deck from becoming a collection of unrelated pages.
 
-If `ui-ux-pro-max` recommends a style that does not exactly match a local preset, keep the recommendation and map it to the nearest preset:
-
-- dark technical / AI / cybersecurity / luminous interfaces -> `aurora-borealis`
-- business / finance / startup / high-contrast decision decks -> `bold-signal`
-- editorial / education / culture / warm report decks -> `editorial-ink`
-
-The preset must not override the external recommendation. Use `token_extensions`, `visual_language`, and `consistency_rules` to carry the recommendation into the React slides.
+Use `theme_tokens`, `visual_language`, `signature_visual_moves`, and `consistency_rules` to carry the recommendation into the React slides.
 
 ## `outline.json`
 
 Must define:
 
-- `theme`: the active style preset.
+- `theme`: the design DNA direction.
 - `style_constraints`: global visual constraints.
 - `slides`: ordered slide descriptors.
 
@@ -180,7 +176,7 @@ This is not the Python engineering validator. It records AI visual judgment and 
 - If the audience, thesis, or key evidence changes, update `analysis.json` and revisit the outline.
 - If content emphasis or exclusion changes, update `content_quality_report.json` and regenerate downstream files.
 - If external design guidance changes, update `design_recommendation.json`, then regenerate `design_dna.json`, `outline.json`, `slide_blueprint.json`, slides, and visual review.
-- If visual tone, preset, tokens, or layout recipes change, update `design_dna.json` and repair all affected slides.
+- If visual tone, theme tokens, signature visual moves, or layout recipes change, update `design_dna.json` and repair all affected slides.
 - If slide order, roles, or count changes, update `outline.json`, `slide_blueprint.json`, and affected slides.
 - If slide sources change, regenerate review screenshots, `visual_review_report.json`, engineering validation, manifest, assets, and PPTX.
 - After any contract change, rerun validation and rebuild the PPTX.
