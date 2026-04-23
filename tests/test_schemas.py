@@ -87,3 +87,36 @@ def test_visual_review_schema_accepts_vision_review_evidence():
         "slides": [{"slide": 1, "passed": True, "visual_score": 8, "findings": [], "repairs": []}]
     }
     jsonschema.validate(data, schema)
+
+
+def test_slide_blueprint_schema_accepts_asset_intent():
+    schema = load_schema("slide_blueprint")
+    data = {
+        "slides": [
+            {
+                "slide": 1,
+                "title": "教师角色：三重转变",
+                "critical_visual": True,
+                "visual_goal": "Remember the three-role shift immediately.",
+                "wow_goal": "diagram invention",
+                "rollback_scope_default": "slide_local",
+                "shared_visual_dependencies": ["role-triangle-language"],
+                "asset_intent": {
+                    "visual_role": "core_explainer",
+                    "asset_goal": "Show the three-role model as one memorable diagram.",
+                    "candidate_asset_types": ["diagram/svg", "image_generation"],
+                    "must_show": ["three roles", "triangle relationship"],
+                    "must_avoid": ["generic card grid"],
+                    "wow_goal": "diagram invention",
+                },
+            }
+        ]
+    }
+    jsonschema.validate(data, schema)
+
+
+def test_visual_asset_plan_schema_requires_primary_route():
+    schema = load_schema("visual_asset_plan")
+    data = {"slides": [{"slide": 1, "asset_slots": [{"slot": "hero"}]}]}
+    with pytest.raises(jsonschema.ValidationError):
+        jsonschema.validate(data, schema)

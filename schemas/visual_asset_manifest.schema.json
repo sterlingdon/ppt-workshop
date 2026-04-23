@@ -1,0 +1,46 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "required": ["assets"],
+  "properties": {
+    "assets": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "asset_id",
+          "slide",
+          "slot",
+          "asset_type",
+          "source_type",
+          "source_provider",
+          "candidate_assets",
+          "selected_asset"
+        ],
+        "properties": {
+          "asset_id": { "type": "string", "minLength": 1 },
+          "slide": { "type": "integer", "minimum": 1 },
+          "slot": { "type": "string", "minLength": 1 },
+          "asset_type": { "type": "string", "minLength": 1 },
+          "source_type": { "type": "string", "minLength": 1 },
+          "source_provider": { "type": "string", "minLength": 1 },
+          "prompt_or_query": { "type": "string" },
+          "candidate_assets": {
+            "type": "array",
+            "items": { "type": "object" }
+          },
+          "selected_asset": { "type": "object" },
+          "selection_rationale": { "type": "string" },
+          "review_status": { "type": "string" },
+          "license_metadata": { "type": "object" },
+          "resolution_metadata": { "type": "object" },
+          "rollback_scope": {
+            "type": "string",
+            "enum": ["slide_local", "pattern_shared", "deck_global"]
+          },
+          "invalidated_at": { "type": "string" }
+        }
+      }
+    }
+  }
+}
