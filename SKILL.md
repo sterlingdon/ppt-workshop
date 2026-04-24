@@ -28,7 +28,7 @@ Required at each role activation:
 Required by stage:
 
 - Content: [`references/deck-brief.md`](references/deck-brief.md) and [`references/semantic-validation.md`](references/semantic-validation.md).
-- Design: [`references/ppt-visual-design.md`](references/ppt-visual-design.md), then invoke the available `ui-ux-pro-max` design-intelligence entry point for transferable design judgment adapted to fixed 16:9 slides.
+- Design: [`references/ppt-visual-design.md`](references/ppt-visual-design.md), then invoke the available `ui-ux-pro-max` design-intelligence entry point for transferable design judgment adapted to fixed 16:9 slides. Before locking the deck system, explore multiple visual directions and select one deliberately instead of defaulting to the safest layout.
 - Slide code: [`examples/react-slides/minimal-deck/README.md`](examples/react-slides/minimal-deck/README.md), [`references/slide-coding-rules.md`](references/slide-coding-rules.md), [`references/component-authoring.md`](references/component-authoring.md), and `web/src/styles/STYLE_GUIDE.md`.
 - Visual/export repair: [`references/visual-validation.md`](references/visual-validation.md), [`references/visual-fidelity.md`](references/visual-fidelity.md), and [`references/pptx-exporter.md`](references/pptx-exporter.md).
 
@@ -50,9 +50,11 @@ Required working contract:
 - `analysis.json`: audience-relevant facts, thesis, statistics, entities, language, and suggested theme.
 - `content_quality_report.json`: content auditor gate result. It proves the deck angle, audience, key points, and data emphasis are correct before slide generation.
 - `design_recommendation.json`: distilled `ui-ux-pro-max` recommendation used to create the deck's design system.
+- `concept_directions.json`: 2-3 clearly different visual directions considered before deck production, with one selected direction and explicit rejection reasons for the others.
 - `design_dna.json`: visual system for this deck, including full theme tokens, style recipes, signature visual moves, slide-pattern assignments, and consistency rules.
 - `outline.json`: slide-by-slide plan with type, title, image need, and purpose notes.
 - `slide_blueprint.json`: page-by-page build plan for React slide authoring.
+- `visual_asset_research.json`: research-backed generation/diagram intent for critical visual pages.
 - `slides/Slide_N.tsx` plus `slides/index.ts`: final React slide sources.
 - `review/full_deck.png` plus `review/slides/*.png`: rendered review screenshots used by the AI visual gate.
 - `visual_review_report.json`: AI visual review and repair audit. This is required for quality even though the CLI does not create it.
@@ -67,7 +69,7 @@ Required working contract:
 2. Extract clean article text into `article_text.md` and initialize `deck_state.json`.
 3. Activate the **Content Quality Auditor** role prompt, set `deck_state.json.active_role` to `content_quality_auditor`: read `deck_state.json`, create `analysis.json`, identify the audience, deck goal, thesis, must-emphasize facts, must-cut noise, data points, and slide-worthy arguments.
 4. Write `content_quality_report.json` using the report examples in `examples/reports/`; do not proceed unless it has `status: "pass"`, no blocking content findings, no required revisions, and all `resolution_log` items resolved. If the report requires revisions, update the content artifacts, record the fixes, and re-run the audit before handoff.
-5. Activate the **PPT Generation Agent** role prompt, set `deck_state.json.active_role` to `ppt_generation_agent`: provide the exact prompt from `references/agent-prompts.md`, read `references/ppt-visual-design.md`, invoke `ui-ux-pro-max`, write `design_recommendation.json`, create `design_dna.json`, create `outline.json`, create `slide_blueprint.json`, then write React slides in `output/projects/<project-id>/slides/`.
+5. Activate the **PPT Generation Agent** role prompt, set `deck_state.json.active_role` to `ppt_generation_agent`: provide the exact prompt from `references/agent-prompts.md`, read `references/ppt-visual-design.md` and `references/visual-sop.md`, invoke `ui-ux-pro-max`, write `design_recommendation.json`, create `concept_directions.json`, select the strongest direction, create `design_dna.json`, create `outline.json`, create `slide_blueprint.json`, create `visual_asset_research.json`, create `visual_asset_plan.json`, and then write React slides in `output/projects/<project-id>/slides/`.
 6. Run structural validation.
 7. Run `python3 tools/ppt_workflow.py review-screenshots --project <project-id>` to create rendered review screenshots in `review/full_deck.png` and `review/slides/*.png`, then activate the **Visual Review/Validation Agent** role prompt and set `deck_state.json.active_role` to `visual_review_validation_agent`: inspect those screenshots with a vision-capable model or explicit human visual review, write `visual_review_report.json` with `review_capability`, repair weak slides, record each repair in `repair_log`, regenerate screenshots, and repeat until there are no blocking design findings. If the current model cannot inspect images, stop with `status: "blocked"` instead of fabricating visual scores.
 8. Run browser engineering validation and repair until `visual_validation_report.json.summary.failed` is `0`.
@@ -99,11 +101,12 @@ python3 tools/ppt_workflow.py export-html --project <project-id>
 ## Quality Gates
 
 - Content gate: `content_quality_report.json` must pass before PPT generation. It must verify audience fit, thesis, key points, data emphasis, omissions, slide-worthy narrative, and a resolved revision loop when revisions were requested.
-- Generation gate: `analysis.json`, `content_quality_report.json`, `design_recommendation.json`, `design_dna.json`, `outline.json`, and `slide_blueprint.json` must agree on audience, thesis, narrative arc, tone, slide roles, locked copy, flattened required texts, and visual anchors before slide coding.
-- Asset gate: `slide_blueprint.json` should define asset intent, `visual_asset_plan.json` should record route choices, and any human feedback should be normalized into `human_feedback_log.json` before destructive rollback.
+- Generation gate: `analysis.json`, `content_quality_report.json`, `design_recommendation.json`, `concept_directions.json`, `design_dna.json`, `outline.json`, and `slide_blueprint.json` must agree on audience, thesis, narrative arc, tone, slide roles, locked copy, flattened required texts, and visual anchors before slide coding.
+- Visual ambition gate: `concept_directions.json` must prove the agent considered multiple directions and selected one on purpose. Do not proceed with a single default style unless the source itself leaves no room for meaningful variation.
+- Asset gate: `slide_blueprint.json` should define asset intent, `visual_asset_research.json` should define what "the right asset" looks like, `visual_asset_plan.json` should record route choices, and any human feedback should be normalized into `human_feedback_log.json` before destructive rollback.
 - Copy lock gate: React slide code must render the approved `slide_blueprint.json` copy. The React authoring step may choose layout, grouping, emphasis, and line breaks, but must not rewrite facts, titles, numbers, entities, or conclusions directly in TSX.
 - Source gate: `validate` must pass before export. It checks slide sources and marker basics; it does not judge deck quality.
-- AI visual gate: the agent must inspect rendered slides and reject pages that are technically valid but visually weak, generic, sparse, cluttered, off-theme, or not useful to the audience. Record the review and resolved repair loop in `visual_review_report.json`. A passing report must include `review_context.context_sources`, `visual_craft_score`, `strategic_clarity_score`, `review_capability.method`, `review_capability.image_input`, and `review_capability.inspected_assets`; text-only models must block rather than approve.
+- AI visual gate: the agent must inspect rendered slides and reject pages that are technically valid but visually weak, generic, sparse, cluttered, off-theme, monotonous, low-contrast, compositionally timid, or not useful to the audience. Record the review and resolved repair loop in `visual_review_report.json`. A passing report must include `review_context.context_sources`, `visual_craft_score`, `strategic_clarity_score`, `distinctiveness_score`, `review_capability.method`, `review_capability.image_input`, and `review_capability.inspected_assets`; text-only models must block rather than approve.
 - Engineering browser gate: `visual-validate` must pass with `summary.failed == 0`. This is not a visual-quality pass and does not replace `visual_review_report.json`.
 - Export gate: run `build` after content and AI visual gates pass; final PPTX and complete static HTML asset directory must be generated from the approved React slides.
 
@@ -114,8 +117,11 @@ python3 tools/ppt_workflow.py export-html --project <project-id>
 - Sub-agent delegation is optional and discouraged by default. Use it only for narrow tasks with complete role context, explicit artifact paths, clear write scope, and main-agent review.
 - Never start slide generation before the Content Quality Auditor has approved the deck angle and key points.
 - One deck, one visual system. Do not mix unrelated styles per slide.
+- One deck, one visual system does not mean one layout repeated 10 times. Preserve system-level consistency while varying composition, scale, pacing, and tension across slide roles.
 - Use `design_dna.json` as the style contract.
 - `design_dna.json` must be grounded in `ui-ux-pro-max` recommendations and must define the deck's full visual system. `ui-ux-pro-max` is used for cross-domain design judgment: hierarchy, layout, typography, color, spacing, chart language, and interface-level polish that transfer to PPT. It is not a signal to make a website or app.
+- Do not let the workflow collapse into the default pattern of title plus subtitle plus 3 equal cards. If a slide can be mistaken for a generic SaaS template, redesign it.
+- Establish visual contrast at the deck level: at minimum the deck should contain a strong opener, at least one diagrammatic or spatial explanation slide, at least one high-contrast data slide, and deliberate section or pacing slides when the narrative needs them.
 - Use the React slide examples as the source of truth for import paths, `index.ts`, and marker structure before relying on validators.
 - PPT visual craft is a gate, not decoration. Weak hierarchy, oversized/undersized type, monotonous templates, poor whitespace, or generic web-card layouts must be repaired before export even when validators pass.
 - Do not let React slide authoring become a second writing pass. If approved copy is wrong, revise `slide_blueprint.json` and invalidate downstream artifacts.

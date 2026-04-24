@@ -1,0 +1,40 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "required": ["project_id", "slides"],
+  "properties": {
+    "project_id": { "type": "string", "minLength": 1 },
+    "deck_visual_strategy": { "type": "string" },
+    "slides": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["slide", "title", "primary_route", "research_query", "research_tags", "reject_if"],
+        "properties": {
+          "slide": { "type": "integer", "minimum": 1 },
+          "title": { "type": "string", "minLength": 1 },
+          "primary_route": {
+            "type": "string",
+            "enum": ["diagram/svg", "chart", "image_generation", "none"]
+          },
+          "research_query": { "type": "string", "minLength": 1 },
+          "research_tags": {
+            "type": "array",
+            "items": { "type": "string", "minLength": 1 }
+          },
+          "visual_motif": { "type": "string" },
+          "desired_composition": { "type": "string" },
+          "desired_mood": { "type": "string" },
+          "reject_if": {
+            "type": "array",
+            "items": { "type": "string", "minLength": 1 }
+          },
+          "sourcing_guidance": {
+            "type": "array",
+            "items": { "type": "string", "minLength": 1 }
+          }
+        }
+      }
+    }
+  }
+}

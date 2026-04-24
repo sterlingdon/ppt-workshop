@@ -6,6 +6,7 @@ import re
 
 STAGE_ARTIFACTS = {
     "visual_review": ["visual_review_report.json", "review/full_deck.png", "review/slides"],
+    "visual_asset_research": ["visual_asset_research.json"],
     "visual_asset_plan": ["visual_asset_plan.json"],
     "visual_asset_manifest": ["visual_asset_manifest.json", "assets"],
     "slide_blueprint": ["slide_blueprint.json"],
@@ -15,7 +16,8 @@ STAGE_ARTIFACTS = {
 STAGE_KEYWORDS = [
     ("design_dna", ("design dna", "design_dna")),
     ("slide_blueprint", ("blueprint", "visual anchor", "asset intent")),
-    ("visual_asset_manifest", ("asset manifest", "asset system", "assets", "搜图", "出图", "chart", "diagram")),
+    ("visual_asset_research", ("asset research", "image research", "素材方向", "视觉方向")),
+    ("visual_asset_manifest", ("asset manifest", "asset system", "assets", "出图", "chart", "diagram")),
     ("visual_review", ("visual review", "review", "screenshots")),
 ]
 

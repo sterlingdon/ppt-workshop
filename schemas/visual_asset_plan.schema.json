@@ -3,6 +3,8 @@
   "type": "object",
   "required": ["slides"],
   "properties": {
+    "project_id": { "type": "string" },
+    "research_artifact": { "type": "string" },
     "slides": {
       "type": "array",
       "items": {
@@ -20,15 +22,36 @@
                 "slot": { "type": "string", "minLength": 1 },
                 "primary_route": {
                   "type": "string",
-                  "enum": ["diagram/svg", "chart", "image_search", "image_generation", "none"]
+                  "enum": ["diagram/svg", "chart", "image_generation", "none"]
                 },
                 "fallback_routes": {
                   "type": "array",
                   "items": {
                     "type": "string",
-                    "enum": ["diagram/svg", "chart", "image_search", "image_generation", "none"]
+                    "enum": ["diagram/svg", "chart", "image_generation", "none"]
                   }
                 },
+                "research_query": { "type": "string" },
+                "research_tags": {
+                  "type": "array",
+                  "items": { "type": "string", "minLength": 1 }
+                },
+                "selection_criteria": {
+                  "type": "array",
+                  "items": { "type": "string", "minLength": 1 }
+                },
+                "placement_contract": {
+                  "type": "object",
+                  "properties": {
+                    "mode": { "type": "string" },
+                    "dominant_zone": { "type": "string" },
+                    "crop_preference": { "type": "string" },
+                    "content_priority": { "type": "string" },
+                    "composition_hint": { "type": "string" }
+                  }
+                },
+                "fallback_strategy": { "type": "string" },
+                "premium_fallback_required": { "type": "boolean" },
                 "candidate_count": { "type": "integer", "minimum": 1 },
                 "independent_asset_review": { "type": "boolean" },
                 "critical_visual": { "type": "boolean" }

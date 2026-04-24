@@ -17,19 +17,18 @@
           "description": { "type": "string" },
           "preferred_strategy": {
             "type": "string",
-            "enum": ["diagram", "claude", "svg", "canvas", "icon", "pexels", "pixabay", "search", "ai"]
+            "enum": ["diagram", "claude", "svg", "canvas", "icon", "ai"]
           },
           "fallback_chain": {
             "type": "array",
             "items": {
               "type": "string",
-              "enum": ["diagram", "claude", "svg", "canvas", "icon", "pexels", "pixabay", "search", "ai"]
+              "enum": ["diagram", "claude", "svg", "canvas", "icon", "ai"]
             },
             "minItems": 1
           },
           "svg_code": { "type": "string" },
           "icon_name": { "type": "string" },
-          "search_query": { "type": "string" },
           "ai_prompt": { "type": "string" },
           "diagram_width": { "type": "integer", "default": 900 },
           "diagram_height": { "type": "integer", "default": 420 },

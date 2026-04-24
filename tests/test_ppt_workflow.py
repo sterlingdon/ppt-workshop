@@ -1,6 +1,7 @@
 from pathlib import Path
 import sys
 from types import SimpleNamespace
+import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
@@ -202,6 +203,25 @@ def test_build_parser_includes_asset_plan_command():
     assert args.command == "asset-plan"
 
 
+def test_build_parser_includes_asset_research_command():
+    parser = build_parser()
+    args = parser.parse_args(["asset-research", "--project", "demo"])
+
+    assert args.command == "asset-research"
+
+
+def test_build_parser_rejects_legacy_image_discovery_command():
+    parser = build_parser()
+    with pytest.raises(SystemExit):
+        parser.parse_args(["image-discovery", "--project", "demo"])
+
+
+def test_build_parser_rejects_legacy_image_shortlist_command():
+    parser = build_parser()
+    with pytest.raises(SystemExit):
+        parser.parse_args(["image-shortlist", "--project", "demo"])
+
+
 def test_build_parser_includes_log_feedback_command():
     parser = build_parser()
     args = parser.parse_args(["log-feedback", "--project", "demo", "--message", "Slide 7 的三角图完全不对"])
@@ -214,3 +234,10 @@ def test_build_parser_includes_asset_manifest_command():
     args = parser.parse_args(["asset-manifest", "--project", "demo"])
 
     assert args.command == "asset-manifest"
+
+
+def test_build_parser_includes_font_manifest_command():
+    parser = build_parser()
+    args = parser.parse_args(["font-manifest", "--project", "demo"])
+
+    assert args.command == "font-manifest"

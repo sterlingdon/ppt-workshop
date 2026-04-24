@@ -6,10 +6,12 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from tools.presentation_workspace import create_project_workspace
 import tools.visual_assets as visual_assets
+from tools.visual_asset_providers import ProviderUnavailableError
 from tools.visual_assets import (
     build_asset_plan_entry,
     build_visual_asset_manifest,
     build_visual_asset_plan,
+    build_visual_asset_research,
 )
 
 
@@ -41,6 +43,27 @@ def test_build_asset_plan_entry_prefers_diagram_for_structure_slides():
     assert slot["independent_asset_review"] is True
 
 
+def test_build_asset_plan_entry_prefers_image_generation_for_critical_editorial_slides():
+    entry = build_asset_plan_entry(
+        slide=3,
+        critical_visual=True,
+        asset_intent={
+            "visual_role": "hero",
+            "asset_goal": "Show a real-world AI classroom scene with editorial impact.",
+            "candidate_asset_types": ["diagram/svg", "image_generation"],
+            "must_show": ["teacher", "student", "screen glow"],
+            "must_avoid": ["flat diagram"],
+            "wow_goal": "full-bleed editorial photography",
+        },
+    )
+
+    slot = entry["asset_slots"][0]
+
+    assert slot["primary_route"] == "image_generation"
+    assert slot["candidate_count"] == 5
+    assert slot["independent_asset_review"] is True
+
+
 def test_build_asset_plan_entry_uses_default_candidate_count_for_normal_slide():
     entry = build_asset_plan_entry(
         slide=2,
@@ -48,7 +71,7 @@ def test_build_asset_plan_entry_uses_default_candidate_count_for_normal_slide():
         asset_intent={
             "visual_role": "supporting_evidence",
             "asset_goal": "Support the title with a real-world image.",
-            "candidate_asset_types": ["image_search", "image_generation"],
+            "candidate_asset_types": ["image_generation"],
             "must_show": ["teacher and student"],
             "must_avoid": ["diagram"],
             "wow_goal": "photo credibility",
@@ -57,9 +80,29 @@ def test_build_asset_plan_entry_uses_default_candidate_count_for_normal_slide():
 
     slot = entry["asset_slots"][0]
 
-    assert slot["primary_route"] == "image_search"
+    assert slot["primary_route"] == "image_generation"
     assert slot["candidate_count"] == 3
     assert slot["independent_asset_review"] is False
+
+
+def test_build_asset_plan_entry_keeps_supported_fallback_routes_only():
+    entry = build_asset_plan_entry(
+        slide=4,
+        critical_visual=True,
+        asset_intent={
+            "visual_role": "hero",
+            "asset_goal": "Show a child opening a window to the world.",
+            "candidate_asset_types": ["image_generation", "diagram/svg"],
+            "must_show": ["window", "child silhouette"],
+            "must_avoid": ["generic stock photo"],
+            "wow_goal": "editorial opener",
+        },
+    )
+
+    slot = entry["asset_slots"][0]
+
+    assert slot["primary_route"] == "image_generation"
+    assert slot["fallback_routes"] == ["diagram/svg"]
 
 
 def test_build_visual_asset_plan_writes_routes_from_blueprint(tmp_path):
@@ -87,7 +130,7 @@ def test_build_visual_asset_plan_writes_routes_from_blueprint(tmp_path):
                 "asset_intent": {
                     "visual_role": "supporting_evidence",
                     "asset_goal": "Show a real classroom context.",
-                    "candidate_asset_types": ["image_search", "image_generation"],
+                    "candidate_asset_types": ["image_generation"],
                     "must_show": ["teacher", "student"],
                     "must_avoid": ["diagram"],
                     "wow_goal": "photo credibility",
@@ -99,9 +142,69 @@ def test_build_visual_asset_plan_writes_routes_from_blueprint(tmp_path):
     plan = build_visual_asset_plan(workspace)
 
     assert workspace.visual_asset_plan_path.is_file()
+    assert workspace.visual_asset_research_path.is_file()
     assert plan["slides"][0]["asset_slots"][0]["primary_route"] == "diagram/svg"
     assert plan["slides"][0]["asset_slots"][0]["candidate_count"] == 5
-    assert plan["slides"][1]["asset_slots"][0]["primary_route"] == "image_search"
+    assert plan["slides"][1]["asset_slots"][0]["primary_route"] == "image_generation"
+    assert plan["slides"][1]["asset_slots"][0]["selection_criteria"]
+    assert plan["slides"][1]["asset_slots"][0]["placement_contract"]["mode"] == "supportive"
+
+
+def test_build_visual_asset_plan_prefers_image_route_for_critical_scene_slide(tmp_path):
+    workspace = create_project_workspace("Scene Deck", root_dir=tmp_path, project_id="scene-deck")
+    write_blueprint(
+        workspace,
+        [
+            {
+                "slide": 1,
+                "title": "AI Classroom Future",
+                "critical_visual": True,
+                "asset_intent": {
+                    "visual_role": "hero",
+                    "asset_goal": "Show a cinematic classroom scene.",
+                    "candidate_asset_types": ["diagram/svg", "image_generation"],
+                    "must_show": ["teacher", "student"],
+                    "must_avoid": ["generic corporate diagram"],
+                    "wow_goal": "editorial cover image",
+                },
+            }
+        ],
+    )
+
+    plan = build_visual_asset_plan(workspace)
+
+    assert plan["slides"][0]["asset_slots"][0]["primary_route"] == "image_generation"
+    assert plan["slides"][0]["asset_slots"][0]["premium_fallback_required"] is True
+
+
+def test_build_visual_asset_research_writes_reject_and_search_guidance(tmp_path):
+    workspace = create_project_workspace("Research Deck", root_dir=tmp_path, project_id="research-deck")
+    write_blueprint(
+        workspace,
+        [
+            {
+                "slide": 1,
+                "title": "World Window",
+                "critical_visual": True,
+                "asset_intent": {
+                    "visual_role": "hero",
+                    "asset_goal": "Show children looking out to the world through news and context.",
+                    "candidate_asset_types": ["image_generation", "diagram/svg"],
+                    "must_show": ["window", "newspaper", "child silhouette"],
+                    "must_avoid": ["generic classroom stock photo"],
+                    "wow_goal": "editorial cover atmosphere",
+                    "visual_cues": ["editorial photography", "warm paper tones"],
+                },
+            }
+        ],
+    )
+
+    research = build_visual_asset_research(workspace)
+
+    assert workspace.visual_asset_research_path.is_file()
+    assert research["slides"][0]["research_query"]
+    assert "generic classroom stock photo" in research["slides"][0]["reject_if"]
+    assert "editorial photography" in research["slides"][0]["research_tags"]
 
 
 def test_build_visual_asset_manifest_generates_diagram_svg_candidates(tmp_path):
@@ -171,11 +274,8 @@ def test_build_visual_asset_manifest_generates_chart_svg_candidates(tmp_path):
     assert asset["selected_asset"]["path"].endswith(".svg")
 
 
-def test_build_visual_asset_manifest_marks_unconfigured_image_search_as_blocked(tmp_path, monkeypatch):
-    monkeypatch.delenv("UNSPLASH_ACCESS_KEY", raising=False)
-    monkeypatch.delenv("PEXELS_API_KEY", raising=False)
-    monkeypatch.delenv("PIXABAY_API_KEY", raising=False)
-    workspace = create_project_workspace("Search Deck", root_dir=tmp_path, project_id="search-deck")
+def test_build_visual_asset_manifest_marks_unconfigured_image_generation_as_blocked(tmp_path, monkeypatch):
+    workspace = create_project_workspace("Generation Deck", root_dir=tmp_path, project_id="generation-deck")
     write_blueprint(
         workspace,
         [
@@ -186,7 +286,7 @@ def test_build_visual_asset_manifest_marks_unconfigured_image_search_as_blocked(
                 "asset_intent": {
                     "visual_role": "supporting_evidence",
                     "asset_goal": "Show a real classroom context.",
-                    "candidate_asset_types": ["image_search"],
+                    "candidate_asset_types": ["image_generation"],
                     "must_show": ["teacher", "student"],
                     "must_avoid": ["diagram"],
                     "wow_goal": "photo credibility",
@@ -196,6 +296,11 @@ def test_build_visual_asset_manifest_marks_unconfigured_image_search_as_blocked(
     )
 
     build_visual_asset_plan(workspace)
+
+    def fake_generate(*, prompt, candidate_count, workspace_root, asset_prefix):
+        raise ProviderUnavailableError("no generation providers configured")
+
+    monkeypatch.setattr(visual_assets, "generate_image_candidates", fake_generate)
     manifest = build_visual_asset_manifest(workspace)
 
     asset = manifest["assets"][0]
@@ -203,8 +308,46 @@ def test_build_visual_asset_manifest_marks_unconfigured_image_search_as_blocked(
     assert asset["selected_asset"]["status"] == "unavailable"
 
 
-def test_build_visual_asset_manifest_fetches_configured_image_search_candidates(tmp_path, monkeypatch):
-    workspace = create_project_workspace("Search Deck", root_dir=tmp_path, project_id="search-deck")
+def test_build_visual_asset_manifest_falls_back_to_diagram_when_generation_is_blocked(tmp_path, monkeypatch):
+    workspace = create_project_workspace("Fallback Deck", root_dir=tmp_path, project_id="fallback-deck")
+    write_blueprint(
+        workspace,
+        [
+            {
+                "slide": 1,
+                "title": "World Window",
+                "critical_visual": True,
+                "asset_intent": {
+                    "visual_role": "hero",
+                    "asset_goal": "Show an editorial world-window moment.",
+                    "candidate_asset_types": ["image_generation", "diagram/svg"],
+                    "must_show": ["window", "world"],
+                    "must_avoid": ["weak placeholder"],
+                    "wow_goal": "editorial cover atmosphere",
+                },
+            }
+        ],
+    )
+
+    build_visual_asset_plan(workspace)
+
+    def fake_generate(*, prompt, candidate_count, workspace_root, asset_prefix):
+        raise ProviderUnavailableError("no generation providers configured")
+
+    monkeypatch.setattr(visual_assets, "generate_image_candidates", fake_generate)
+    manifest = build_visual_asset_manifest(workspace)
+
+    asset = manifest["assets"][0]
+    assert asset["asset_type"] == "diagram/svg"
+    assert asset["fallback_applied"]["used"] is True
+    assert asset["fallback_applied"]["from_route"] == "image_generation"
+    assert asset["fallback_applied"]["to_route"] == "diagram/svg"
+    assert asset["review_status"] == "approved"
+    assert asset["candidate_ranking"][0]["candidate_id"] == asset["selected_asset"]["candidate_id"]
+
+
+def test_build_visual_asset_manifest_uses_generation_candidates(tmp_path, monkeypatch):
+    workspace = create_project_workspace("Generation Deck", root_dir=tmp_path, project_id="generation-deck")
     write_blueprint(
         workspace,
         [
@@ -215,7 +358,7 @@ def test_build_visual_asset_manifest_fetches_configured_image_search_candidates(
                 "asset_intent": {
                     "visual_role": "supporting_evidence",
                     "asset_goal": "Show a real classroom context.",
-                    "candidate_asset_types": ["image_search"],
+                    "candidate_asset_types": ["image_generation"],
                     "must_show": ["teacher", "student"],
                     "must_avoid": ["diagram"],
                     "wow_goal": "photo credibility",
@@ -225,28 +368,28 @@ def test_build_visual_asset_manifest_fetches_configured_image_search_candidates(
     )
     build_visual_asset_plan(workspace)
 
-    def fake_search(*, query, candidate_count, workspace_root, asset_prefix):
+    def fake_generate(*, prompt, candidate_count, workspace_root, asset_prefix):
         path = workspace_root / f"{asset_prefix}.jpg"
         path.write_bytes(b"img")
         return [
             {
-                "candidate_id": "search-1",
+                "candidate_id": "gen-1",
                 "path": path.relative_to(workspace.project_dir).as_posix(),
                 "status": "ready",
                 "score": 8.9,
-                "source_provider": "unsplash",
-                "license_metadata": {"provider": "unsplash"},
+                "source_provider": "gemini",
+                "license_metadata": {"provider": "gemini"},
                 "resolution_metadata": {"width": 1600, "height": 900},
             }
         ]
 
-    monkeypatch.setattr(visual_assets, "search_image_candidates", fake_search)
+    monkeypatch.setattr(visual_assets, "generate_image_candidates", fake_generate)
 
     manifest = build_visual_asset_manifest(workspace)
 
     asset = manifest["assets"][0]
     assert asset["review_status"] == "approved"
-    assert asset["selected_asset"]["source_provider"] == "unsplash"
+    assert asset["selected_asset"]["source_provider"] == "gemini"
 
 
 def test_build_visual_asset_manifest_fetches_configured_generated_images(tmp_path, monkeypatch):

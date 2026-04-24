@@ -350,8 +350,6 @@ def choose_primary_route(asset_intent: dict) -> str:
         return "diagram/svg"
     if "chart" in candidates:
         return "chart"
-    if "image_search" in candidates:
-        return "image_search"
     if "image_generation" in candidates:
         return "image_generation"
     return "none"

@@ -9,36 +9,39 @@ from pathlib import Path
 try:
     from .visual_asset_providers import (
         IMAGE_GENERATION_PROVIDER_ENV,
-        SEARCH_PROVIDER_ENV,
         ProviderRequestError,
         ProviderUnavailableError,
         generate_image_candidates,
-        search_image_candidates,
     )
 except ImportError:
     from visual_asset_providers import (
         IMAGE_GENERATION_PROVIDER_ENV,
-        SEARCH_PROVIDER_ENV,
         ProviderRequestError,
         ProviderUnavailableError,
         generate_image_candidates,
-        search_image_candidates,
     )
 
 
 CRITICAL_REVIEW_CANDIDATE_COUNT = 5
 DEFAULT_CANDIDATE_COUNT = 3
 ROUTE_PRIORITY = [
+    "image_generation",
     "diagram/svg",
     "chart",
-    "image_search",
-    "image_generation",
     "none",
 ]
+REMOTE_ROUTES = {"image_generation"}
+SUPPORTED_ASSET_ROUTES = {"image_generation", "diagram/svg", "chart", "none"}
 
 
 def _load_json(path: Path) -> dict:
     return json.loads(path.read_text(encoding="utf-8"))
+
+
+def _load_optional_json(path: Path) -> dict:
+    if not path.exists():
+        return {}
+    return _load_json(path)
 
 
 def _write_json(path: Path, payload: dict) -> None:
@@ -54,17 +57,239 @@ def _must_show_list(asset_intent: dict) -> list[str]:
     return [str(item) for item in asset_intent.get("must_show", []) if str(item).strip()]
 
 
-def choose_primary_route(asset_intent: dict) -> str:
-    candidates = asset_intent.get("candidate_asset_types", [])
+def _normalized_text(value: object) -> str:
+    return str(value or "").strip().lower()
+
+
+def _dedupe_texts(items: list[object]) -> list[str]:
+    seen: set[str] = set()
+    results: list[str] = []
+    for item in items:
+        text = str(item or "").strip()
+        if not text:
+            continue
+        normalized = text.casefold()
+        if normalized in seen:
+            continue
+        seen.add(normalized)
+        results.append(text)
+    return results
+
+
+def _normalized_candidate_routes(asset_intent: dict) -> list[str]:
+    normalized: list[str] = []
+    for route in asset_intent.get("candidate_asset_types", []):
+        resolved = str(route or "").strip()
+        if not resolved or resolved not in SUPPORTED_ASSET_ROUTES or resolved in normalized:
+            continue
+        normalized.append(resolved)
+    return normalized
+
+
+def _prefer_photo_first(asset_intent: dict, critical_visual: bool) -> bool:
+    if not asset_intent:
+        return False
+    visual_role = _normalized_text(asset_intent.get("visual_role"))
+    wow_goal = _normalized_text(asset_intent.get("wow_goal"))
+    asset_goal = _normalized_text(asset_intent.get("asset_goal"))
+    composition_hint = _normalized_text(asset_intent.get("composition_hint"))
+    dominant_zone = _normalized_text(asset_intent.get("dominant_zone"))
+    keyword_blob = " ".join([visual_role, wow_goal, asset_goal, composition_hint, dominant_zone])
+    photo_terms = (
+        "photo",
+        "photography",
+        "real-world",
+        "real world",
+        "realistic",
+        "editorial",
+        "atmosphere",
+        "mood",
+        "hero",
+        "full-bleed",
+        "full bleed",
+        "cover",
+        "scene",
+        "human",
+        "people",
+    )
+    visual_roles = {
+        "hero",
+        "supporting_evidence",
+        "case_study",
+        "context_scene",
+        "scene_setter",
+        "opener",
+    }
+    if visual_role in visual_roles:
+        return True
+    if any(term in keyword_blob for term in photo_terms):
+        return True
+    return critical_visual and "diagram" not in keyword_blob and "chart" not in keyword_blob
+
+
+def _prefer_diagram_first(asset_intent: dict) -> bool:
+    if not asset_intent:
+        return False
+    visual_role = _normalized_text(asset_intent.get("visual_role"))
+    wow_goal = _normalized_text(asset_intent.get("wow_goal"))
+    asset_goal = _normalized_text(asset_intent.get("asset_goal"))
+    keyword_blob = " ".join([visual_role, wow_goal, asset_goal])
+    diagram_roles = {
+        "core_explainer",
+        "framework",
+        "process",
+        "system_map",
+        "mechanism",
+    }
+    if visual_role in diagram_roles:
+        return True
+    return any(term in keyword_blob for term in ("diagram", "framework", "relationship", "process", "system"))
+
+
+def _prefer_chart_first(asset_intent: dict) -> bool:
+    if not asset_intent:
+        return False
+    visual_role = _normalized_text(asset_intent.get("visual_role"))
+    wow_goal = _normalized_text(asset_intent.get("wow_goal"))
+    asset_goal = _normalized_text(asset_intent.get("asset_goal"))
+    keyword_blob = " ".join([visual_role, wow_goal, asset_goal])
+    if visual_role in {"data_evidence", "trend", "metric", "comparison_data"}:
+        return True
+    return any(term in keyword_blob for term in ("chart", "trend", "data", "metric", "compare"))
+
+
+def choose_primary_route(asset_intent: dict, critical_visual: bool = False) -> str:
+    candidates = _normalized_candidate_routes(asset_intent)
+    if not candidates:
+        return "none"
+    if _prefer_photo_first(asset_intent, critical_visual):
+        for route in ("image_generation",):
+            if route in candidates:
+                return route
+    if _prefer_chart_first(asset_intent) and "chart" in candidates:
+        return "chart"
+    if _prefer_diagram_first(asset_intent) and "diagram/svg" in candidates:
+        return "diagram/svg"
     for route in ROUTE_PRIORITY:
         if route in candidates:
             return route
     return "none"
 
 
-def build_asset_plan_entry(slide: int, critical_visual: bool, asset_intent: dict) -> dict:
-    primary_route = choose_primary_route(asset_intent)
-    fallback_routes = [route for route in asset_intent.get("candidate_asset_types", []) if route != primary_route]
+def _selection_criteria(route: str, critical_visual: bool) -> list[str]:
+    criteria = ["goal_match", "composition_fit", "anti_template_risk"]
+    if route in REMOTE_ROUTES:
+        criteria.append("subject_relevance")
+        criteria.append("crop_resilience")
+    if route == "diagram/svg":
+        criteria.append("explanatory_clarity")
+    if route == "chart":
+        criteria.append("data_readability")
+    if critical_visual:
+        criteria.append("distinctiveness")
+    return criteria
+
+
+def _placement_contract(route: str, asset_intent: dict, critical_visual: bool) -> dict:
+    dominant_zone = str(asset_intent.get("dominant_zone") or "").strip() or ("full-bleed" if critical_visual else "side-panel")
+    composition_hint = str(asset_intent.get("composition_hint") or "").strip()
+    if route in REMOTE_ROUTES:
+        mode = "dominant" if critical_visual else "supportive"
+        crop_preference = "cover" if dominant_zone in {"full-bleed", "cover", "background"} else "framed"
+    elif route == "diagram/svg":
+        mode = "anchored-explainer"
+        crop_preference = "none"
+    elif route == "chart":
+        mode = "evidence-panel"
+        crop_preference = "none"
+    else:
+        mode = "typography-first"
+        crop_preference = "none"
+    return {
+        "mode": mode,
+        "dominant_zone": dominant_zone,
+        "crop_preference": crop_preference,
+        "content_priority": "preserve_text_clear_space" if route in REMOTE_ROUTES else "preserve_readability",
+        "composition_hint": composition_hint,
+    }
+
+
+def _fallback_strategy(primary_route: str, fallback_routes: list[str], asset_intent: dict) -> str:
+    explicit = str(asset_intent.get("fallback_visual_strategy") or "").strip()
+    if explicit:
+        return explicit
+    if primary_route in REMOTE_ROUTES:
+        if "diagram/svg" in fallback_routes:
+            return "If photo/generation fails, switch to a premium typography-plus-diagram composition."
+        if "chart" in fallback_routes:
+            return "If image routes fail, elevate the evidence chart and let typography carry mood."
+        return "If image routes fail, switch to a typography-first layout with no weak placeholder art."
+    return "If the planned asset underperforms, simplify the page and strengthen typography instead of adding filler."
+
+
+def _design_context(workspace) -> tuple[dict, dict]:
+    recommendation = _load_optional_json(workspace.project_dir / "design_recommendation.json")
+    design_dna = _load_optional_json(workspace.project_dir / "design_dna.json")
+    return recommendation, design_dna
+
+
+def build_visual_asset_research(workspace) -> dict:
+    blueprint = load_slide_blueprint(workspace)
+    recommendation, design_dna = _design_context(workspace)
+    asset_direction = recommendation.get("asset_direction") or {}
+    visual_language = design_dna.get("visual_language") or {}
+    deck_visual_strategy = str(design_dna.get("visual_direction") or recommendation.get("visual_direction") or "").strip()
+    slides = []
+
+    for slide in blueprint.get("slides", []):
+        asset_intent = slide.get("asset_intent", {})
+        primary_route = choose_primary_route(asset_intent, critical_visual=bool(slide.get("critical_visual", False)))
+        research_tags = _dedupe_texts(
+            list(asset_intent.get("visual_cues") or [])
+            + list(asset_direction.get("visual_cues") or [])
+            + list(asset_intent.get("generation_cues") or [])
+            + list(asset_direction.get("generation_cues") or [])
+            + list(asset_intent.get("must_show") or [])
+            + list(asset_direction.get("image_mood") or [])
+            + list(visual_language.get("image_mood") or [])
+        )
+        reject_if = _dedupe_texts(list(asset_intent.get("must_avoid") or []) + ["generic enterprise stock pose", "equal-width card-grid energy"])
+        desired_composition = str(asset_intent.get("composition_hint") or slide.get("layout_pattern") or "").strip()
+        desired_mood = ", ".join(_dedupe_texts(list(asset_direction.get("image_mood") or []) + list(visual_language.get("image_mood") or [])))
+        slides.append(
+            {
+                "slide": slide["slide"],
+                "title": slide.get("title", f"Slide {slide['slide']}"),
+                "primary_route": primary_route,
+                "research_query": _asset_query(slide, asset_intent),
+                "research_tags": research_tags,
+                "visual_motif": str(asset_intent.get("visual_role") or "").strip(),
+                "desired_composition": desired_composition,
+                "desired_mood": desired_mood,
+                "reject_if": reject_if,
+                "sourcing_guidance": _dedupe_texts(
+                    [
+                        str(asset_intent.get("asset_goal") or "").strip(),
+                        str(asset_direction.get("icon_style") or "").strip(),
+                        str(asset_direction.get("diagram_style") or "").strip(),
+                    ]
+                ),
+            }
+        )
+
+    payload = {
+        "project_id": workspace.project_id,
+        "deck_visual_strategy": deck_visual_strategy,
+        "slides": slides,
+    }
+    _write_json(workspace.visual_asset_research_path, payload)
+    return payload
+
+
+def build_asset_plan_entry(slide: int, critical_visual: bool, asset_intent: dict, research_entry: dict | None = None) -> dict:
+    primary_route = choose_primary_route(asset_intent, critical_visual=critical_visual)
+    fallback_routes = [route for route in _normalized_candidate_routes(asset_intent) if route != primary_route]
+    research_entry = research_entry or {}
     return {
         "slide": slide,
         "asset_slots": [
@@ -75,6 +300,12 @@ def build_asset_plan_entry(slide: int, critical_visual: bool, asset_intent: dict
                 "candidate_count": CRITICAL_REVIEW_CANDIDATE_COUNT if critical_visual else DEFAULT_CANDIDATE_COUNT,
                 "independent_asset_review": critical_visual,
                 "critical_visual": critical_visual,
+                "research_query": research_entry.get("research_query", ""),
+                "research_tags": research_entry.get("research_tags", []),
+                "selection_criteria": _selection_criteria(primary_route, critical_visual),
+                "placement_contract": _placement_contract(primary_route, asset_intent, critical_visual),
+                "fallback_strategy": _fallback_strategy(primary_route, fallback_routes, asset_intent),
+                "premium_fallback_required": primary_route in REMOTE_ROUTES,
             }
         ],
     }
@@ -88,12 +319,19 @@ def load_slide_blueprint(workspace) -> dict:
 
 def build_visual_asset_plan(workspace) -> dict:
     blueprint = load_slide_blueprint(workspace)
+    research = (
+        _load_json(workspace.visual_asset_research_path)
+        if workspace.visual_asset_research_path.exists()
+        else build_visual_asset_research(workspace)
+    )
+    research_by_slide = {entry["slide"]: entry for entry in research.get("slides", [])}
     slides = []
     for slide in blueprint.get("slides", []):
         entry = build_asset_plan_entry(
             slide=slide["slide"],
             critical_visual=bool(slide.get("critical_visual", False)),
             asset_intent=slide.get("asset_intent", {}),
+            research_entry=research_by_slide.get(slide["slide"], {}),
         )
         entry["title"] = slide.get("title", f"Slide {slide['slide']}")
         entry["visual_goal"] = slide.get("visual_goal", "")
@@ -104,6 +342,7 @@ def build_visual_asset_plan(workspace) -> dict:
 
     payload = {
         "project_id": workspace.project_id,
+        "research_artifact": workspace.visual_asset_research_path.name,
         "slides": slides,
     }
     _write_json(workspace.visual_asset_plan_path, payload)
@@ -115,8 +354,6 @@ def _route_to_source(route: str) -> tuple[str, str]:
         return ("diagram/svg", "local_svg_renderer")
     if route == "chart":
         return ("chart", "local_chart_renderer")
-    if route == "image_search":
-        return ("image_search", _first_configured_provider(SEARCH_PROVIDER_ENV) or "unconfigured")
     if route == "image_generation":
         return ("image_generation", _first_configured_provider(IMAGE_GENERATION_PROVIDER_ENV) or "unconfigured")
     return ("none", "none")
@@ -311,24 +548,66 @@ def _normalize_candidate_paths(workspace, candidates: list[dict]) -> list[dict]:
     return normalized
 
 
-def _build_remote_candidates(workspace, slide_entry: dict, slide_meta: dict, slot: dict, route: str, asset_intent: dict) -> tuple[list[dict], dict, str, str]:
+def _rank_candidate_assets(candidates: list[dict], route: str, asset_intent: dict, critical_visual: bool) -> list[dict]:
+    rankings = []
+    must_show_bonus = min(len(_must_show_list(asset_intent)) * 0.15, 0.6)
+    route_bonus = 0.3 if route in REMOTE_ROUTES and critical_visual else 0.15 if route in {"diagram/svg", "chart"} else 0.0
+    for index, candidate in enumerate(candidates, start=1):
+        base_score = float(candidate.get("score", 0.0) or 0.0)
+        status = str(candidate.get("status", "ready"))
+        implementation_confidence = 9.2 if status in {"ready", "provider_ready"} else 4.0 if status == "pending" else 2.0
+        composition_fit = min(base_score + (0.25 if critical_visual else 0.0), 10.0)
+        goal_match = min(base_score + must_show_bonus, 10.0)
+        distinctiveness = min(base_score + route_bonus, 10.0)
+        total_score = round((goal_match * 0.38) + (composition_fit * 0.27) + (distinctiveness * 0.2) + (implementation_confidence * 0.15), 2)
+        rankings.append(
+            {
+                "candidate_id": candidate.get("candidate_id", f"candidate-{index}"),
+                "rank": index,
+                "total_score": total_score,
+                "criteria_scores": {
+                    "goal_match": round(goal_match, 2),
+                    "composition_fit": round(composition_fit, 2),
+                    "distinctiveness": round(distinctiveness, 2),
+                    "implementation_confidence": round(implementation_confidence, 2),
+                },
+                "notes": f"Route {route} ranking based on asset goal, composition fit, and implementation confidence.",
+            }
+        )
+    rankings.sort(key=lambda item: item["total_score"], reverse=True)
+    for rank, item in enumerate(rankings, start=1):
+        item["rank"] = rank
+    return rankings
+
+
+def _selected_candidate_from_rankings(candidates: list[dict], rankings: list[dict]) -> dict:
+    if not candidates:
+        return {"status": "not_required"}
+    candidate_by_id = {candidate.get("candidate_id"): candidate for candidate in candidates}
+    top_candidate = rankings[0] if rankings else None
+    if top_candidate and top_candidate.get("candidate_id") in candidate_by_id:
+        return candidate_by_id[top_candidate["candidate_id"]]
+    return _select_best_candidate(candidates)
+
+
+def _build_remote_candidates(
+    workspace,
+    slide_entry: dict,
+    slide_meta: dict,
+    slot: dict,
+    route: str,
+    asset_intent: dict,
+    research_entry: dict | None = None,
+) -> tuple[list[dict], dict, str, str]:
     query = _asset_query(slide_meta, asset_intent)
-    asset_prefix = f"slide_{slide_entry['slide']:02d}_{slot['slot']}_{'search' if route == 'image_search' else 'generated'}"
+    asset_prefix = f"slide_{slide_entry['slide']:02d}_{slot['slot']}_generated"
     try:
-        if route == "image_search":
-            candidates = search_image_candidates(
-                query=query,
-                candidate_count=slot["candidate_count"],
-                workspace_root=workspace.assets_dir,
-                asset_prefix=asset_prefix,
-            )
-        else:
-            candidates = generate_image_candidates(
-                prompt=query,
-                candidate_count=slot["candidate_count"],
-                workspace_root=workspace.assets_dir,
-                asset_prefix=asset_prefix,
-            )
+        candidates = generate_image_candidates(
+            prompt=query,
+            candidate_count=slot["candidate_count"],
+            workspace_root=workspace.assets_dir,
+            asset_prefix=asset_prefix,
+        )
     except (ProviderUnavailableError, ProviderRequestError) as exc:
         blocked = {
             "candidate_id": f"{slide_entry['slide']}-{slot['slot']}-{route}-unavailable",
@@ -340,68 +619,144 @@ def _build_remote_candidates(workspace, slide_entry: dict, slide_meta: dict, slo
 
     normalized_candidates = _normalize_candidate_paths(workspace, candidates)
     selected = _select_best_candidate(normalized_candidates)
-    rationale = f"Selected the highest-scoring remote {route} candidate for slide {slide_entry['slide']}."
+    rationale = f"Selected the highest-scoring generated image candidate for slide {slide_entry['slide']}."
     return normalized_candidates, selected, "approved", rationale
+
+
+def _materialize_asset_route(
+    workspace,
+    slide_entry: dict,
+    slide_meta: dict,
+    slot: dict,
+    route: str,
+    asset_intent: dict,
+    research_entry: dict | None = None,
+) -> tuple[str, str, list[dict], dict, str, str]:
+    source_type, source_provider = _route_to_source(route)
+    if route == "diagram/svg":
+        candidate_assets = _build_diagram_candidates(workspace, slide_meta, slot, asset_intent)
+        selected_asset = _select_best_candidate(candidate_assets)
+        return source_type, source_provider, candidate_assets, selected_asset, "approved", f"Selected the strongest diagram candidate for slide {slide_entry['slide']}."
+    if route == "chart":
+        candidate_assets = _build_chart_candidates(workspace, slide_meta, slot, asset_intent)
+        selected_asset = _select_best_candidate(candidate_assets)
+        return source_type, source_provider, candidate_assets, selected_asset, "approved", f"Selected the clearest chart candidate for slide {slide_entry['slide']}."
+    if route == "image_generation":
+        candidate_assets, selected_asset, review_status, selection_rationale = _build_remote_candidates(
+            workspace,
+            slide_entry,
+            slide_meta,
+            slot,
+            route,
+            asset_intent,
+            research_entry=research_entry,
+        )
+        return source_type, source_provider, candidate_assets, selected_asset, review_status, selection_rationale
+    return source_type, source_provider, [], {"status": "not_required"}, "approved", "No visual asset is required for this slide."
 
 
 def build_visual_asset_manifest(workspace) -> dict:
     plan = _load_json(workspace.visual_asset_plan_path) if workspace.visual_asset_plan_path.exists() else build_visual_asset_plan(workspace)
+    research = (
+        _load_json(workspace.visual_asset_research_path)
+        if workspace.visual_asset_research_path.exists()
+        else build_visual_asset_research(workspace)
+    )
     blueprint = load_slide_blueprint(workspace)
     blueprint_by_slide = {entry["slide"]: entry for entry in blueprint.get("slides", [])}
+    research_by_slide = {entry["slide"]: entry for entry in research.get("slides", [])}
     assets = []
 
     for slide_entry in plan.get("slides", []):
         slide_meta = blueprint_by_slide.get(slide_entry["slide"], {"slide": slide_entry["slide"], "title": slide_entry.get("title", "")})
         asset_intent = slide_meta.get("asset_intent", {})
+        research_entry = research_by_slide.get(slide_entry["slide"], {})
         for slot in slide_entry.get("asset_slots", []):
-            route = slot["primary_route"]
-            source_type, source_provider = _route_to_source(route)
+            requested_route = str(slot["primary_route"]).strip()
+            route_attempts = []
+            for route in [requested_route, *slot.get("fallback_routes", [])]:
+                normalized_route = str(route or "").strip()
+                if normalized_route and normalized_route in SUPPORTED_ASSET_ROUTES and normalized_route not in route_attempts:
+                    route_attempts.append(normalized_route)
             asset_id = f"slide-{slide_entry['slide']}-{slot['slot']}"
+            resolved_route = requested_route
+            fallback_applied = {"used": False, "from_route": requested_route, "to_route": requested_route, "reason": ""}
+            source_type = "none"
+            source_provider = "none"
+            candidate_assets: list[dict] = []
+            selected_asset: dict = {"status": "not_required"}
             review_status = "approved"
-            selection_rationale = f"Selected the highest-scoring {route} candidate for slide {slide_entry['slide']}."
+            selection_rationale = f"Selected the highest-scoring {requested_route} candidate for slide {slide_entry['slide']}."
 
-            if route == "diagram/svg":
-                candidate_assets = _build_diagram_candidates(workspace, slide_meta, slot, asset_intent)
-                selected_asset = _select_best_candidate(candidate_assets)
-            elif route == "chart":
-                candidate_assets = _build_chart_candidates(workspace, slide_meta, slot, asset_intent)
-                selected_asset = _select_best_candidate(candidate_assets)
-            elif route == "image_search":
-                candidate_assets, selected_asset, review_status, selection_rationale = _build_remote_candidates(
+            for attempt_index, route in enumerate(route_attempts):
+                source_type, source_provider, candidate_assets, selected_asset, review_status, selection_rationale = _materialize_asset_route(
                     workspace,
                     slide_entry,
                     slide_meta,
                     slot,
                     route,
                     asset_intent,
+                    research_entry=research_entry,
                 )
-            elif route == "image_generation":
-                candidate_assets, selected_asset, review_status, selection_rationale = _build_remote_candidates(
-                    workspace,
-                    slide_entry,
-                    slide_meta,
-                    slot,
-                    route,
-                    asset_intent,
-                )
-            else:
-                candidate_assets = []
-                selected_asset = {"status": "not_required"}
-                review_status = "approved"
-                selection_rationale = "No visual asset is required for this slide."
+                resolved_route = route
+                if review_status != "blocked":
+                    if route != requested_route:
+                        fallback_applied = {
+                            "used": True,
+                            "from_route": requested_route,
+                            "to_route": route,
+                            "reason": f"Primary route was blocked; using fallback route {route}.",
+                        }
+                    break
+                if attempt_index == len(route_attempts) - 1:
+                    fallback_applied = {
+                        "used": requested_route != route,
+                        "from_route": requested_route,
+                        "to_route": route,
+                        "reason": selected_asset.get("reason", "All configured routes failed."),
+                    }
+
+            candidate_ranking = _rank_candidate_assets(
+                candidate_assets,
+                resolved_route,
+                asset_intent,
+                bool(slot.get("critical_visual", False)),
+            )
+            if candidate_ranking:
+                selected_asset = _selected_candidate_from_rankings(candidate_assets, candidate_ranking)
+                if fallback_applied["used"]:
+                    selection_rationale = (
+                        f"Primary route {requested_route} was unavailable; "
+                        f"selected the best-ranked {resolved_route} fallback candidate for slide {slide_entry['slide']}."
+                    )
+                else:
+                    selection_rationale = f"Selected the best-ranked {resolved_route} candidate for slide {slide_entry['slide']}."
 
             asset = {
                 "asset_id": asset_id,
                 "slide": slide_entry["slide"],
                 "slot": slot["slot"],
-                "asset_type": route,
+                "asset_type": resolved_route,
                 "source_type": source_type,
                 "source_provider": selected_asset.get("source_provider", source_provider),
                 "prompt_or_query": _asset_query(slide_meta, asset_intent),
                 "candidate_assets": candidate_assets,
                 "selected_asset": selected_asset,
+                "candidate_ranking": candidate_ranking,
                 "selection_rationale": selection_rationale,
                 "review_status": review_status,
+                "research_summary": {
+                    "research_query": research_entry.get("research_query", ""),
+                    "research_tags": research_entry.get("research_tags", []),
+                    "desired_composition": research_entry.get("desired_composition", ""),
+                    "reject_if": research_entry.get("reject_if", []),
+                },
+                "placement_decision": {
+                    **dict(slot.get("placement_contract") or {}),
+                    "resolved_route": resolved_route,
+                    "critical_visual": bool(slot.get("critical_visual", False)),
+                },
+                "fallback_applied": fallback_applied,
                 "license_metadata": selected_asset.get("license_metadata", {}),
                 "resolution_metadata": {"candidate_count": len(candidate_assets), **selected_asset.get("resolution_metadata", {})},
                 "rollback_scope": slide_meta.get("rollback_scope_default", "slide_local"),

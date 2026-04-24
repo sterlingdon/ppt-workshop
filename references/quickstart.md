@@ -10,9 +10,10 @@ Do not read every reference up front. Load the smallest packet needed for the st
 2. Before each role: read `references/agent-prompts.md`, then load the Shared Preamble plus the exact active role prompt.
 3. Before each artifact: read only that artifact's section in `references/artifact-templates.md`; use `schemas/*.schema.json` when a schema exists.
 4. Content stage: read `references/deck-brief.md` and `references/semantic-validation.md`.
-5. Design stage: read `references/ppt-visual-design.md`, invoke the available `ui-ux-pro-max` design-intelligence entry point, then write `design_recommendation.json` and `design_dna.json`.
-6. React slides: read `examples/react-slides/minimal-deck/README.md`, `references/slide-coding-rules.md`, `references/component-authoring.md`, and `web/src/styles/STYLE_GUIDE.md`.
-7. Repair/export: read `references/visual-validation.md`, `references/visual-fidelity.md`, and `references/pptx-exporter.md`.
+5. Design stage: read `references/ppt-visual-design.md` and `references/visual-sop.md`, invoke the available `ui-ux-pro-max` design-intelligence entry point, write `design_recommendation.json`, explore multiple `concept_directions.json` options, then lock `design_dna.json`.
+6. Blueprint/assets stage: write `slide_blueprint.json`, then `visual_asset_research.json`, `visual_asset_plan.json`, and `visual_asset_manifest.json`. Prefer `image_generation`, `diagram/svg`, `chart`, and typography-first fallbacks; do not rely on open-web image search.
+7. React slides: read `examples/react-slides/minimal-deck/README.md`, `references/slide-coding-rules.md`, `references/component-authoring.md`, and `web/src/styles/STYLE_GUIDE.md`.
+8. Repair/export: read `references/visual-validation.md`, `references/visual-fidelity.md`, and `references/pptx-exporter.md`.
 
 Read `references/engineering.md` only when blocked by implementation details.
 
@@ -45,6 +46,8 @@ Run `python3 tools/ppt_workflow.py validate --project <project-id>` immediately 
 3. If AI visual review fails, repair the React slide, record the fix in `visual_review_report.json.repair_log`, regenerate screenshots, and review again.
 4. If `visual-validate` fails, repair the reported slide source, rerun `visual-validate`, regenerate screenshots, and repeat AI visual review because source changed.
 5. Build only after content, AI visual, and engineering gates all pass.
+
+Treat image, icon, SVG, and typography choices as first-class design work, not last-mile decoration. If a slide needs a visual anchor and the current asset path is weak, fix the asset strategy before polishing JSX.
 
 `build` writes both `presentation.pptx` and the complete `presentation-html/` Vite static site. Use that directory to compare the browser source-of-truth rendering against the exported PPTX.
 

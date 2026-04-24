@@ -57,6 +57,40 @@ def test_activate_project_slides_replaces_renderer_slot(tmp_path):
     assert sorted(path.name for path in copied) == ["Slide_1.tsx", "index.ts"]
     assert "Project Title" in (active_slides / "Slide_1.tsx").read_text(encoding="utf-8")
     assert "Old Active Title" not in (active_slides / "Slide_1.tsx").read_text(encoding="utf-8")
+    assert (active_slides.parent / "font-face.css").is_file()
+
+
+def test_activate_project_slides_syncs_project_font_assets(tmp_path):
+    workspace = create_project_workspace("Font Deck", root_dir=tmp_path, project_id="font-deck")
+    write_active_deck(workspace.slides_dir, title="Project Title")
+    (workspace.project_dir / "design_dna.json").write_text(
+        """
+{
+  "font_strategy": {
+    "display": {
+      "family": "Space Grotesk",
+      "source": "bundled",
+      "asset_path": "__FONT__"
+    }
+  }
+}
+""".strip(),
+        encoding="utf-8",
+    )
+    bundled_font = tmp_path / "SpaceGrotesk.woff2"
+    bundled_font.write_bytes(b"font")
+    (workspace.project_dir / "design_dna.json").write_text(
+        (workspace.project_dir / "design_dna.json").read_text(encoding="utf-8").replace("__FONT__", str(bundled_font)),
+        encoding="utf-8",
+    )
+
+    active_slides = tmp_path / "web" / "src" / "generated" / "slides"
+
+    activate_project_slides(workspace, active_slides)
+
+    assert (active_slides.parent / "font-face.css").is_file()
+    synced_fonts = list((active_slides.parent / "fonts").iterdir())
+    assert len(synced_fonts) == 1
 
 
 def test_activate_project_slides_requires_index(tmp_path):

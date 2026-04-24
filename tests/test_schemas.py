@@ -149,3 +149,56 @@ def test_visual_asset_plan_schema_requires_primary_route():
     data = {"slides": [{"slide": 1, "asset_slots": [{"slot": "hero"}]}]}
     with pytest.raises(jsonschema.ValidationError):
         jsonschema.validate(data, schema)
+
+
+def test_visual_asset_research_schema_accepts_research_payload():
+    schema = load_schema("visual_asset_research")
+    data = {
+        "project_id": "deck",
+        "deck_visual_strategy": "editorial education deck",
+        "slides": [
+            {
+                "slide": 1,
+                "title": "世界之窗",
+                "primary_route": "image_generation",
+                "research_query": "editorial classroom window world",
+                "research_tags": ["editorial", "classroom", "window"],
+                "visual_motif": "hero",
+                "desired_composition": "full-bleed hero with calm left text area",
+                "desired_mood": "warm, urgent",
+                "reject_if": ["generic stock pose"],
+                "sourcing_guidance": ["real classroom context"]
+            }
+        ],
+    }
+    jsonschema.validate(data, schema)
+
+
+def test_visual_asset_manifest_schema_accepts_ranking_and_fallback():
+    schema = load_schema("visual_asset_manifest")
+    data = {
+        "assets": [
+            {
+                "asset_id": "slide-1-primary",
+                "slide": 1,
+                "slot": "primary",
+                "asset_type": "diagram/svg",
+                "source_type": "diagram/svg",
+                "source_provider": "local_svg_renderer",
+                "prompt_or_query": "three-role model",
+                "candidate_assets": [],
+                "selected_asset": {"status": "ready"},
+                "candidate_ranking": [{"candidate_id": "a", "rank": 1, "total_score": 9.1}],
+                "selection_rationale": "fallback diagram won",
+                "review_status": "approved",
+                "research_summary": {"research_query": "three-role model"},
+                "placement_decision": {"mode": "anchored-explainer", "resolved_route": "diagram/svg"},
+                "fallback_applied": {"used": True, "from_route": "image_generation", "to_route": "diagram/svg"},
+                "license_metadata": {},
+                "resolution_metadata": {},
+                "rollback_scope": "slide_local"
+            }
+        ]
+    }
+    jsonschema.validate(data, schema)
+

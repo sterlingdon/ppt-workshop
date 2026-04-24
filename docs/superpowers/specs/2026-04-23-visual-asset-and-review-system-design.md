@@ -73,7 +73,7 @@ In scope for the first redesign:
 
 - explicit slide-level asset intent
 - a unified visual asset system
-- routing between `diagram/svg`, `chart`, `image_search`, `image_generation`, and `none`
+- routing between `diagram/svg`, `chart`, `image_generation`, and `none`
 - multi-candidate asset generation and selection
 - contextual AI visual review with harsh scoring
 - wow requirements for critical visual slides
@@ -121,7 +121,6 @@ Supported asset outcomes:
 
 - `diagram/svg`
 - `chart`
-- `image_search`
 - `image_generation`
 - `none`
 
@@ -273,8 +272,8 @@ Default routing logic:
 1. If a slide is stronger without an asset, use `none`.
 2. For structure, relationships, systems, flows, timelines, and role models, prefer `diagram/svg`.
 3. For trends, comparisons, rankings, distributions, and analytical reporting, prefer `chart`.
-4. For real people, places, environments, and real-world evidence, prefer `image_search`.
-5. For abstract concepts, branded atmosphere, and custom illustrative anchors, prefer `image_generation`.
+4. For real people, places, environments, and editorial atmosphere, prefer `image_generation`.
+5. For abstract concepts, branded atmosphere, and custom illustrative anchors, also prefer `image_generation` when a bespoke visual is stronger than a found one.
 
 If the preferred path cannot deliver the required impact, the workflow may:
 
@@ -588,7 +587,7 @@ Priority 3:
 The redesign succeeds when:
 
 - the workflow can decide when not to use an image
-- the workflow can intentionally build diagrams, charts, and sourced imagery as first-class slide assets
+- the workflow can intentionally build diagrams, charts, and generated imagery as first-class slide assets
 - weak slides fail for the right reason, not just "needs polish"
 - single weak slides can be rebuilt without invalidating approved pages
 - critical visual slides are blocked unless they are both high-scoring and memorable

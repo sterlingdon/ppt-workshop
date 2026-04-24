@@ -24,6 +24,8 @@ Do not ask it to design navigation, forms, responsive app screens, CTAs, hover s
 Use ui-ux-pro-max for transferable web/product design principles, then adapt them to a 16:9 PowerPoint deck. Do not produce a website/app layout.
 ```
 
+Before writing `design_dna.json`, explore 2-3 distinct directions. Make them visibly different in composition, contrast, typography, and image treatment rather than just palette swaps. Record the options in `concept_directions.json`, choose one, and explain why it best fits the audience and material.
+
 ## Slide Craft Baseline
 
 Each slide must have one dominant idea. If two ideas compete, split or reframe the slide.
@@ -41,6 +43,8 @@ Use these fixed-slide guidelines unless the content clearly requires an exceptio
 - Density: a normal slide should contain 3-7 meaningful visual elements, not a wall of cards.
 
 Typography must be intentional. Use a display/body/number role system, consistent weights, and tabular or mono figures for metrics. Do not scale everything uniformly; establish clear rank between headline, evidence, labels, and supporting notes.
+
+Use the full slide canvas intentionally. Slides are allowed to feel editorial, cinematic, diagrammatic, or exhibition-like when that serves the message. Do not default to a centered title and balanced card grid unless the content truly calls for it.
 
 ## Layout Principles
 
@@ -61,6 +65,17 @@ Avoid generic web-page composition in PPT:
 - no mobile-responsive instructions in slide plans
 - no hover or interaction state requirements
 
+Consistency is not repetition. A strong deck can use the same type system and palette while changing the dominant structure by slide role: oversized statement slide, asymmetric evidence slide, full-bleed visual slide, sparse section divider, dense comparison matrix, or diagram-led explanation.
+
+Prefer high-agency composition choices:
+
+- asymmetry when the story needs tension or directional flow
+- oversized type when one sentence or number is the message
+- deliberate negative space when it increases authority or clarity
+- edge-to-edge visual fields when imagery should carry mood or scale
+- layered annotations when context matters more than decorative icon grids
+- diagrams over bullets when relationships are the point
+
 ## Visual System Requirements
 
 `design_dna.json` should turn the recommendation into enforceable rules:
@@ -71,6 +86,13 @@ Avoid generic web-page composition in PPT:
 - `slide_pattern_assignments`: optional custom pattern names across the deck.
 - `consistency_rules`: rules the slide author must obey in JSX.
 - `visual_mandates`: measurable expectations for focal points, data treatment, and minimum visual anchors.
+
+In addition, `design_dna.json` should make mediocre defaults harder:
+
+- specify which slide roles may not use equal-width card grids
+- define how opener, section, data, comparison, and closing slides should differ in composition
+- include anti-patterns specific to this deck, not just generic best practices
+- require at least one signature move to appear on the slides where it has the most narrative value
 
 ## Review Criteria
 
@@ -84,5 +106,9 @@ Reject or repair a slide when any of these are true:
 - colors feel generic or disconnected from the source material
 - chart/data treatment is decorative but not explanatory
 - visuals are attractive but do not help the audience understand the message
+- the slide could be dropped into an unrelated corporate deck without anyone noticing
+- every major block has the same size, weight, and spacing rhythm
+- the slide uses safe symmetry where the story needs emphasis, motion, or tension
+- the deck repeats the same composition pattern so often that the sequence loses energy
 
 Engineering validation can pass while these issues remain. AI visual review must still block export until the rendered screenshots look presentation-grade.

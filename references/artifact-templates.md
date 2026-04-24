@@ -157,18 +157,63 @@ Set `source_skill` to the exact design-intelligence entry point used, such as `u
   "typography": {
     "display": "",
     "body": "",
-    "number": ""
+    "number": "",
+    "font_family_guidance": {
+      "display_role": "",
+      "body_role": "",
+      "number_role": "",
+      "tone": "",
+      "language_coverage_notes": ""
+    }
+  },
+  "asset_direction": {
+    "image_mood": [],
+    "visual_cues": [],
+    "generation_cues": [],
+    "icon_style": "",
+    "diagram_style": ""
   },
   "ppt_adaptation": {
     "focal_point_strategy": "",
     "type_scale_guidance": "",
     "density_guidance": "",
-    "fixed_16_9_translation_notes": ""
+    "fixed_16_9_translation_notes": "",
+    "deck_rhythm_guidance": ""
   },
   "layout_guidance": [],
   "chart_guidance": [],
   "motion_guidance": [],
   "avoid": []
+}
+```
+
+## `concept_directions.json`
+
+```json
+{
+  "project_id": "<project-id>",
+  "selected_direction": "editorial-contrast",
+  "directions": [
+    {
+      "name": "editorial-contrast",
+      "rationale": "",
+      "composition_archetypes": {
+        "opener": "",
+        "section": "",
+        "evidence": "",
+        "closing": ""
+      },
+      "typography_posture": "",
+      "image_posture": "",
+      "signature_moves": []
+    }
+  ],
+  "rejected_directions": [
+    {
+      "name": "safe-enterprise-grid",
+      "rejection_reason": ""
+    }
+  ]
 }
 ```
 
@@ -179,9 +224,33 @@ Set `source_skill` to the exact design-intelligence entry point used, such as `u
   "source_skill": "ui-ux-pro-max",
   "recommendation_summary": "",
   "visual_direction": "",
+  "font_preset": "editorial_publishing|business_strategy|education_family|tech_future",
   "renderer_contract": "Use --ppt-* CSS variables directly from this design DNA.",
   "font_display": "",
   "font_body": "",
+  "font_strategy": {
+    "display": {
+      "family": "",
+      "source": "local|download|bundled",
+      "fallback_chain": [],
+      "ppt_fidelity_mode": "native|raster_ok",
+      "coverage_notes": ""
+    },
+    "body": {
+      "family": "",
+      "source": "local|download|bundled",
+      "fallback_chain": [],
+      "ppt_fidelity_mode": "native|raster_ok",
+      "coverage_notes": ""
+    },
+    "number": {
+      "family": "",
+      "source": "local|download|bundled",
+      "fallback_chain": [],
+      "ppt_fidelity_mode": "native|raster_ok",
+      "coverage_notes": ""
+    }
+  },
   "theme_tokens": {
     "--ppt-bg": "",
     "--ppt-surface": "",
@@ -205,6 +274,7 @@ Set `source_skill` to the exact design-intelligence entry point used, such as `u
     "bg_decoration": "",
     "diagram_recipe": "",
     "chart_recipe": "",
+    "icon_recipe": "",
     "image_mood": []
   },
   "signature_visual_moves": [],
@@ -335,6 +405,9 @@ Required before React slide authoring. This is the page-by-page build plan.
       },
       "required_texts": [],
       "must_not_include": [],
+      "critical_visual": false,
+      "visual_goal": "",
+      "wow_goal": "",
       "visual_anchor": {
         "kind": "big-number",
         "description": ""
@@ -357,6 +430,19 @@ Required before React slide authoring. This is the page-by-page build plan.
         "density_target": "",
         "rhythm_notes": ""
       },
+      "asset_intent": {
+        "visual_role": "",
+        "asset_goal": "",
+        "candidate_asset_types": [],
+        "must_show": [],
+        "must_avoid": [],
+        "wow_goal": "",
+        "composition_hint": "",
+        "dominant_zone": "",
+        "visual_cues": [],
+        "generation_cues": [],
+        "icon_style": ""
+      },
       "data_ppt_requirements": {
         "needs_group": false,
         "needs_item_markers": false,
@@ -371,6 +457,134 @@ Required before React slide authoring. This is the page-by-page build plan.
 `locked_copy` is the source of truth for human-facing React slide text. `required_texts` may duplicate or flatten this copy for validation, but React slide code must not invent or rewrite core copy outside the blueprint. If the copy needs editorial repair, update `slide_blueprint.json` before changing `Slide_N.tsx`.
 
 `visual_hierarchy`, `type_scale`, and `composition` are required authoring inputs. A blueprint that only names a layout pattern is incomplete; it must tell the slide author what should dominate, how large the main text classes should be, and how dense the slide should feel.
+
+## `visual_asset_research.json`
+
+Write this before `visual_asset_plan.json` whenever the deck expects image generation, charting, or any non-trivial diagram route.
+
+```json
+{
+  "project_id": "<project-id>",
+  "deck_visual_strategy": "",
+  "slides": [
+    {
+      "slide": 1,
+      "title": "",
+      "primary_route": "image_generation",
+      "research_query": "",
+      "research_tags": [],
+      "visual_motif": "",
+      "desired_composition": "",
+      "desired_mood": "",
+      "reject_if": [],
+      "sourcing_guidance": []
+    }
+  ]
+}
+```
+
+This artifact exists to decide what "the right picture" or "the right diagram posture" looks like before generators or local renderers are called.
+
+## `visual_asset_plan.json`
+
+```json
+{
+  "project_id": "<project-id>",
+  "research_artifact": "visual_asset_research.json",
+  "slides": [
+    {
+      "slide": 1,
+      "title": "",
+      "visual_goal": "",
+      "wow_goal": "",
+      "rollback_scope_default": "slide_local",
+      "shared_visual_dependencies": [],
+      "asset_slots": [
+        {
+          "slot": "primary",
+          "primary_route": "image_generation",
+          "fallback_routes": ["diagram/svg"],
+          "candidate_count": 5,
+          "independent_asset_review": true,
+          "critical_visual": true,
+          "research_query": "",
+          "research_tags": [],
+          "selection_criteria": [],
+          "placement_contract": {
+            "mode": "dominant",
+            "dominant_zone": "full-bleed",
+            "crop_preference": "cover",
+            "content_priority": "preserve_text_clear_space",
+            "composition_hint": ""
+          },
+          "fallback_strategy": "",
+          "premium_fallback_required": true
+        }
+      ]
+    }
+  ]
+}
+```
+
+## `visual_asset_manifest.json`
+
+```json
+{
+  "project_id": "<project-id>",
+  "assets": [
+    {
+      "asset_id": "slide-1-primary",
+      "slide": 1,
+      "slot": "primary",
+      "asset_type": "image_generation",
+      "source_type": "image_generation",
+      "source_provider": "gemini",
+      "prompt_or_query": "",
+      "candidate_assets": [],
+      "selected_asset": {},
+      "candidate_ranking": [
+        {
+          "candidate_id": "",
+          "rank": 1,
+          "total_score": 9.2,
+          "criteria_scores": {
+            "goal_match": 9.3,
+            "composition_fit": 9.1,
+            "distinctiveness": 9.0,
+            "implementation_confidence": 9.4
+          },
+          "notes": ""
+        }
+      ],
+      "selection_rationale": "",
+      "review_status": "approved",
+      "research_summary": {
+        "research_query": "",
+        "research_tags": [],
+        "desired_composition": "",
+        "reject_if": []
+      },
+      "placement_decision": {
+        "mode": "dominant",
+        "dominant_zone": "full-bleed",
+        "crop_preference": "cover",
+        "content_priority": "preserve_text_clear_space",
+        "resolved_route": "image_generation",
+        "critical_visual": true
+      },
+      "fallback_applied": {
+        "used": false,
+        "from_route": "image_generation",
+        "to_route": "image_generation",
+        "reason": ""
+      },
+      "license_metadata": {},
+      "resolution_metadata": {},
+      "rollback_scope": "slide_local"
+    }
+  ]
+}
+```
 
 ## `visual_review_report.json`
 

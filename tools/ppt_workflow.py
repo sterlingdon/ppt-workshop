@@ -9,22 +9,24 @@ from pathlib import Path
 try:
     from .builder import extract_layout_and_assets
     from .deck_sources import activate_project_slides, snapshot_active_slides
+    from .font_assets import build_font_asset_manifest
     from .human_feedback import apply_feedback
     from .html_exporter import build_html_presentation
     from .pptx_exporter import build_pptx
     from .presentation_workspace import create_project_workspace, get_project_workspace
     from .quality_gate import validate_project
-    from .visual_assets import build_visual_asset_manifest, build_visual_asset_plan
+    from .visual_assets import build_visual_asset_manifest, build_visual_asset_plan, build_visual_asset_research
     from .visual_validator import capture_review_screenshots, validate_visual_project, write_visual_report, run_visual_validation
 except ImportError:
     from builder import extract_layout_and_assets
     from deck_sources import activate_project_slides, snapshot_active_slides
+    from font_assets import build_font_asset_manifest
     from human_feedback import apply_feedback
     from html_exporter import build_html_presentation
     from pptx_exporter import build_pptx
     from presentation_workspace import create_project_workspace, get_project_workspace
     from quality_gate import validate_project
-    from visual_assets import build_visual_asset_manifest, build_visual_asset_plan
+    from visual_assets import build_visual_asset_manifest, build_visual_asset_plan, build_visual_asset_research
     from visual_validator import capture_review_screenshots, validate_visual_project, write_visual_report, run_visual_validation
 
 
@@ -84,10 +86,24 @@ def cmd_asset_plan(args) -> int:
     return 0
 
 
+def cmd_asset_research(args) -> int:
+    workspace = _workspace(args)
+    build_visual_asset_research(workspace)
+    print(f"wrote {workspace.visual_asset_research_path}")
+    return 0
+
+
 def cmd_asset_manifest(args) -> int:
     workspace = _workspace(args)
     build_visual_asset_manifest(workspace)
     print(f"wrote {workspace.visual_asset_manifest_path}")
+    return 0
+
+
+def cmd_font_manifest(args) -> int:
+    workspace = _workspace(args)
+    build_font_asset_manifest(workspace)
+    print(f"wrote {workspace.font_manifest_path}")
     return 0
 
 
@@ -226,8 +242,10 @@ def build_parser() -> argparse.ArgumentParser:
     init.set_defaults(func=cmd_init)
 
     for name, help_text, func in [
+        ("asset-research", "Write the visual asset research artifact for a project.", cmd_asset_research),
         ("asset-plan", "Write the visual asset plan artifact for a project.", cmd_asset_plan),
         ("asset-manifest", "Write the visual asset manifest artifact for a project.", cmd_asset_manifest),
+        ("font-manifest", "Write the project font asset manifest and downloadable font CSS.", cmd_font_manifest),
     ]:
         command = sub.add_parser(name, help=help_text)
         command.add_argument("--project", required=True)

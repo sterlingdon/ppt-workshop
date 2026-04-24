@@ -13,9 +13,13 @@ source material
   -> analysis.json
   -> content_quality_report.json
   -> design_recommendation.json
+  -> concept_directions.json
   -> design_dna.json
   -> outline.json
   -> slide_blueprint.json
+  -> visual_asset_research.json
+  -> visual_asset_plan.json
+  -> visual_asset_manifest.json
   -> slides/Slide_N.tsx + slides/index.ts
   -> review/full_deck.png + review/slides/*.png
   -> visual_review_report.json
@@ -43,9 +47,13 @@ output/projects/<project-id>/
 ├── analysis.json
 ├── content_quality_report.json
 ├── design_recommendation.json
+├── concept_directions.json
 ├── design_dna.json
 ├── outline.json
 ├── slide_blueprint.json
+├── visual_asset_research.json
+├── visual_asset_plan.json
+├── visual_asset_manifest.json
 ├── slides/
 │   ├── Slide_1.tsx
 │   ├── ...
@@ -181,11 +189,13 @@ Inputs:
 - `content_quality_report.json`
 - `ui-ux-pro-max` skill access
 - `references/ppt-visual-design.md`
+- `references/visual-sop.md`
 
 Outputs:
 
 - updated `deck_state.json`
 - `design_recommendation.json`
+- `concept_directions.json`
 - `design_dna.json`
 - `outline.json`
 - `slide_blueprint.json`
@@ -199,14 +209,21 @@ Must do:
 - use `ui-ux-pro-max` for transferable web/product design principles that improve a fixed 16:9 PPT deck: visual hierarchy, type scale, palette, spacing, chart language, component polish, and avoid-rules
 - explicitly tell `ui-ux-pro-max` not to produce website/app navigation, forms, responsive screens, hover states, or interaction flows unless the slide content itself is about a product UI
 - save the distilled recommendation as `design_recommendation.json`
+- convert the `ui-ux-pro-max` response into a deck-specific design contract instead of treating it as optional inspiration; downstream artifacts must map palette, typography, image mood, icon/diagram language, and anti-patterns explicitly
+- create `concept_directions.json` with 2-3 materially different directions before locking the deck system, then choose one on purpose
 - convert the external design recommendation into a complete `design_dna.json` visual system
+- choose or infer a `font_preset` and refine it via `font_strategy`; do not leave typography as raw token names with no acquisition plan
 - map ui-ux-pro-max color and typography recommendations into `design_dna.json.theme_tokens`, then apply those variables directly on every slide root
+- define a font strategy, not just font names: acquisition source, fallback chain, language coverage, and whether each role should stay native in PPT or use raster fallback for fidelity
 - create an outline where every slide has a clear job
-- create `slide_blueprint.json` before writing React code, including locked copy for every human-facing text string plus visual hierarchy, type-scale, focal-point, whitespace, and density decisions
+- create `slide_blueprint.json` before writing React code, including locked copy for every human-facing text string plus visual hierarchy, type-scale, focal-point, whitespace, density decisions, and asset intent
+- decide visual asset strategy slide by slide: whether the page should rely on photography, generated imagery, diagram/SVG construction, icon systems, charts, or pure typography
+- write `visual_asset_research.json` before route execution so each critical slide records its research query, reject cues, desired composition, and sourcing guidance
 - follow `examples/react-slides/minimal-deck/` for import paths, marker structure, and `index.ts`
 - write slides that follow `design_dna.json` and preserve the approved content priorities
 - keep React authoring as visual implementation; do not rewrite facts, titles, numbers, entities, or conclusions directly in TSX
 - avoid generic web-card grids. Every slide needs presentation composition: a dominant idea, deliberate type scale, readable contrast, useful visual anchor, and controlled density
+- build sequence-level rhythm. A deck should not look like the same responsive component system repeated across 10 slides
 
 ### 3. Visual Review/Validation Agent
 
@@ -248,27 +265,32 @@ Must do:
 1. **Ingest**: extract clean source into `article_text.md` and initialize `deck_state.json`. Remove navigation, ads, boilerplate, and irrelevant appendix material.
 2. **Content Quality Audit**: activate the Content Quality Auditor role prompt, set `deck_state.json.active_role` to `content_quality_auditor`, then create `analysis.json` and `content_quality_report.json`. If the auditor sets `status: "needs_revision"`, repair the affected content artifacts, record resolved items in `resolution_log`, and re-run the audit until `status: "pass"`, `blocking_findings == 0`, `required_revisions == []`, and every `resolution_log` item is `resolved`.
 3. **Design Intelligence**: read `references/ppt-visual-design.md`, then invoke `ui-ux-pro-max` with the approved deck domain, audience, tone, complexity, source thesis, and desired presentation goal. The query must state that `ui-ux-pro-max` is being used for transferable web/product design principles adapted to a fixed 16:9 PowerPoint deck, not for website or app UI generation. Save the distilled style, palette, typography, layout, chart, and UX-quality recommendations to `design_recommendation.json`.
-4. **Design DNA**: create `design_dna.json` from the `ui-ux-pro-max` recommendations. Define a complete visual system: visual direction, full `theme_tokens`, visual recipes, signature visual moves, slide-pattern assignments, and consistency rules. React slides must apply `theme_tokens` directly.
-5. **Outline**: create `outline.json`. Every slide needs a type, title, and one sentence explaining its job. The outline must reflect `content_quality_report.json`.
-6. **Slide Blueprint**: create `slide_blueprint.json` with each slide's role, key message, supporting evidence, `locked_copy`, flattened `required_texts`, visual anchor, layout pattern, type-scale guidance, hierarchy plan, whitespace strategy, density target, marker requirements, and asset intent. `locked_copy` is what React renders; `required_texts` is only a validation-friendly flattening of the same copy.
-7. **Visual Asset Plan**: write `visual_asset_plan.json` or run `python3 tools/ppt_workflow.py asset-plan --project <project-id>` to persist the current asset-routing contract for the deck.
-8. **Visual Asset Manifest**: write `visual_asset_manifest.json` or run `python3 tools/ppt_workflow.py asset-manifest --project <project-id>` to materialize route outputs. Local diagram/chart routes should emit actual SVG candidates under `assets/`; provider-backed routes may remain blocked until credentials are configured.
-9. **PPT Generation**: activate the PPT Generation Agent role prompt, set `deck_state.json.active_role` to `ppt_generation_agent`, then write slide components in `output/projects/<project-id>/slides/`. Each slide root is 1920x1080 and has `data-ppt-slide`.
-10. **Structural Gate**: run `python3 tools/ppt_workflow.py validate --project <project-id>`.
-11. **Render Review Assets**: run `python3 tools/ppt_workflow.py review-screenshots --project <project-id>`. This activates the project slides, opens the full-deck browser preview with `?extract=1`, writes `review/full_deck.png`, and writes one screenshot per slide to `review/slides/slide_XX.png`.
-12. **AI Lens Review**: activate the Visual Review/Validation Agent role prompt, set `deck_state.json.active_role` to `visual_review_validation_agent`, then inspect the rendered browser deck as a visual director using a vision-capable model or explicit human visual review. The review must record context sources, dual scores, hard blockers, and wow checks for critical pages. If image inspection is unavailable, block the gate instead of inventing a review.
-13. **AI Repair Loop**: write `visual_review_report.json`, repair React slides, record each fix in `repair_log`, regenerate `review/full_deck.png` and `review/slides/*.png`, then repeat AI review until `status: "pass"`, every slide has `passed: true`, `blocking_findings == 0`, every `repair_log` item is `resolved`, and critical visual slides have `wow_passed: true`.
-14. **Engineering Browser Gate**: run `python3 tools/ppt_workflow.py visual-validate --project <project-id>`. This is a rendered DOM visibility and overflow check, not an AI visual-quality review. Repair reported text, clipping, coverage, or overflow issues until `summary.failed == 0`. If the repair changes any slide source, return to Stage 11 and regenerate review screenshots before repeating AI Lens Review.
-15. **Build**: run `python3 tools/ppt_workflow.py build --project <project-id>`.
-16. **Final Check**: confirm `presentation.pptx`, the complete `presentation-html/` static site, `layout_manifest.json`, and `assets/` were regenerated after the final slide repairs.
+4. **Concept Directions**: create `concept_directions.json` with 2-3 genuinely different directions. At least one option should vary composition archetypes, not just colors. Record why the rejected directions lost.
+5. **Design DNA**: create `design_dna.json` from the selected direction and `ui-ux-pro-max` recommendations. Define a complete visual system: visual direction, full `theme_tokens`, font strategy, visual recipes, signature visual moves, slide-pattern assignments, and consistency rules. React slides must apply `theme_tokens` directly.
+6. **Outline**: create `outline.json`. Every slide needs a type, title, and one sentence explaining its job. The outline must reflect `content_quality_report.json`.
+7. **Slide Blueprint**: create `slide_blueprint.json` with each slide's role, key message, supporting evidence, `locked_copy`, flattened `required_texts`, visual anchor, layout pattern, type-scale guidance, hierarchy plan, whitespace strategy, density target, marker requirements, and asset intent. `locked_copy` is what React renders; `required_texts` is only a validation-friendly flattening of the same copy.
+8. **Visual Asset Research**: write `visual_asset_research.json` or run `python3 tools/ppt_workflow.py asset-research --project <project-id>` to record what the deck should generate, reject, and preserve compositionally before any route is executed.
+9. **Asset Plan**: run `python3 tools/ppt_workflow.py asset-plan --project <project-id>` to convert research into concrete `image_generation`, `diagram/svg`, `chart`, or `none` routes with explicit fallback strategy.
+10. **Asset Manifest**: run `python3 tools/ppt_workflow.py asset-manifest --project <project-id>` to materialize candidate variants, rank them, and record the chosen route plus any fallback.
+11. **Visual Asset Plan**: write `visual_asset_plan.json` or run `python3 tools/ppt_workflow.py asset-plan --project <project-id>` to persist the current asset-routing contract for the deck. Critical visual slides should prefer research-backed or generated imagery when the page goal is atmosphere, realism, or editorial impact.
+12. **Visual Asset Manifest**: write `visual_asset_manifest.json` or run `python3 tools/ppt_workflow.py asset-manifest --project <project-id>` to materialize route outputs. Generation routes should produce multiple prompt variants, rank results before selection, and preserve fallback behavior when credentials are missing. Local diagram/chart routes should emit actual SVG candidates under `assets/`; provider-backed routes may remain blocked until credentials are configured, in which case fallback routes should be attempted automatically.
+10. **PPT Generation**: activate the PPT Generation Agent role prompt, set `deck_state.json.active_role` to `ppt_generation_agent`, then write slide components in `output/projects/<project-id>/slides/`. Each slide root is 1920x1080 and has `data-ppt-slide`.
+11. **Structural Gate**: run `python3 tools/ppt_workflow.py validate --project <project-id>`.
+12. **Render Review Assets**: run `python3 tools/ppt_workflow.py review-screenshots --project <project-id>`. This activates the project slides, opens the full-deck browser preview with `?extract=1`, writes `review/full_deck.png`, and writes one screenshot per slide to `review/slides/slide_XX.png`.
+13. **AI Lens Review**: activate the Visual Review/Validation Agent role prompt, set `deck_state.json.active_role` to `visual_review_validation_agent`, then inspect the rendered browser deck as a visual director using a vision-capable model or explicit human visual review. The review must record context sources, dual scores, hard blockers, distinctiveness checks, and wow checks for critical pages. If image inspection is unavailable, block the gate instead of inventing a review.
+14. **AI Repair Loop**: write `visual_review_report.json`, repair React slides, record each fix in `repair_log`, regenerate `review/full_deck.png` and `review/slides/*.png`, then repeat AI review until `status: "pass"`, every slide has `passed: true`, `blocking_findings == 0`, every `repair_log` item is `resolved`, and critical visual slides have `wow_passed: true`.
+15. **Engineering Browser Gate**: run `python3 tools/ppt_workflow.py visual-validate --project <project-id>`. This is a rendered DOM visibility and overflow check, not an AI visual-quality review. Repair reported text, clipping, coverage, or overflow issues until `summary.failed == 0`. If the repair changes any slide source, return to Stage 12 and regenerate review screenshots before repeating AI Lens Review.
+16. **Build**: run `python3 tools/ppt_workflow.py build --project <project-id>`.
+17. **Final Check**: confirm `presentation.pptx`, the complete `presentation-html/` static site, `layout_manifest.json`, and `assets/` were regenerated after the final slide repairs.
 
 ## Command Semantics
 
 - `init`: creates `project.json`, `assets/`, and `slides/`.
 - `validate`: checks slide sources and marker basics. It does not judge narrative or design quality.
 - `review-screenshots`: activates project slides and writes rendered screenshots for AI Lens Review.
+- `asset-research`: writes the current `visual_asset_research.json` artifact for the project.
 - `asset-plan`: writes the current `visual_asset_plan.json` artifact for the project.
-- `asset-manifest`: writes the current `visual_asset_manifest.json` artifact for the project, emits local SVG/chart candidates where applicable, and can fetch remote search or generated images when provider credentials are configured.
+- `asset-manifest`: writes the current `visual_asset_manifest.json` artifact for the project, emits local SVG/chart candidates where applicable, can generate remote image variants when provider credentials are configured, and records candidate ranking plus fallback usage.
 - `log-feedback`: normalizes natural-language human feedback into `human_feedback_log.json`.
 - `visual-validate`: activates project slides, opens the browser preview, checks visible text, clipping, coverage, and overflow, then writes `visual_validation_report.json`. It is an engineering render gate, not a design critic, and does not satisfy the AI Lens Review.
 - `build`: activates slides, requires passed content and AI visual gate reports, runs engineering validation, extracts layout/assets, exports PPTX and the Vite static-site directory, and validates final outputs.
@@ -283,8 +305,6 @@ Must do:
 ## Provider Environment Variables
 
 - See the repo-root `.env.example` for a ready-to-fill template.
-- Search providers: `UNSPLASH_ACCESS_KEY`, `PEXELS_API_KEY`, `PIXABAY_API_KEY`
-- Optional search-provider override: `VISUAL_ASSET_SEARCH_PROVIDER`
 - Image generation providers: `GEMINI_API_KEY`
 - Optional image-generation model override: `GEMINI_IMAGE_MODEL`
 - Optional image-generation provider override: `VISUAL_ASSET_IMAGE_PROVIDER`
@@ -307,9 +327,11 @@ A deck is complete only when:
 - `content_quality_report.json` has no blocking content findings.
 - `content_quality_report.json.required_revisions` is empty and every `resolution_log` item is `resolved`.
 - `design_recommendation.json` records the `ui-ux-pro-max` recommendation used for the deck.
-- `design_dna.json` gives a consistent visual direction.
+- `concept_directions.json` proves the deck considered multiple directions instead of defaulting to a safe template.
+- `visual_asset_research.json` proves the deck decided what good imagery looks like before it started pulling assets.
+- `design_dna.json` gives a consistent visual direction and font strategy.
 - Every slide has a clear job and uses the same visual system without looking like an unadapted website/app screen.
-- `slide_blueprint.json` exists and every slide has a build plan for copy, visual hierarchy, type scale, focal point, whitespace, density, and export markers.
+- `slide_blueprint.json` exists and every slide has a build plan for copy, visual hierarchy, type scale, focal point, whitespace, density, export markers, and asset intent.
 - `review/full_deck.png` and one `review/slides/slide_XX.png` per slide were generated after the final slide source change.
 - `visual_review_report.json.status` is `"pass"` and has no blocking AI visual findings.
 - `visual_review_report.json.review_capability` records the actual review method, image-input capability, and inspected screenshot paths.

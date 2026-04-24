@@ -5,12 +5,15 @@ import shutil
 from pathlib import Path
 
 try:
+    from .font_assets import build_font_asset_manifest
     from .presentation_workspace import PresentationWorkspace
 except ImportError:
+    from font_assets import build_font_asset_manifest
     from presentation_workspace import PresentationWorkspace
 
 
 SLIDE_SOURCE_PATTERNS = ("*.ts", "*.tsx", "*.css", "*.json")
+GENERATED_FONT_CSS_NAME = "font-face.css"
 
 
 def _require_slide_index(slides_dir: Path) -> None:
@@ -34,6 +37,30 @@ def _copy_slide_sources(source_dir: Path, dest_dir: Path) -> list[Path]:
     return copied
 
 
+def _sync_generated_font_assets(workspace: PresentationWorkspace, generated_root: Path) -> None:
+    generated_root.mkdir(parents=True, exist_ok=True)
+    generated_fonts_dir = generated_root / "fonts"
+    if generated_fonts_dir.exists():
+        shutil.rmtree(generated_fonts_dir)
+    generated_fonts_dir.mkdir(parents=True, exist_ok=True)
+
+    if (workspace.project_dir / "design_dna.json").exists():
+        build_font_asset_manifest(workspace)
+    else:
+        workspace.font_css_path.write_text("/* no project font assets */\n", encoding="utf-8")
+
+    if workspace.fonts_dir.exists():
+        for source in sorted(workspace.fonts_dir.iterdir()):
+            if source.is_file():
+                shutil.copy2(source, generated_fonts_dir / source.name)
+
+    destination_css = generated_root / GENERATED_FONT_CSS_NAME
+    if workspace.font_css_path.is_file():
+        shutil.copy2(workspace.font_css_path, destination_css)
+    else:
+        destination_css.write_text("/* no project font assets */\n", encoding="utf-8")
+
+
 def snapshot_active_slides(
     workspace: PresentationWorkspace,
     active_slides_dir: str | Path = "web/src/generated/slides",
@@ -47,4 +74,7 @@ def activate_project_slides(
     active_slides_dir: str | Path = "web/src/generated/slides",
 ) -> list[Path]:
     """Copy a deck project's durable slide sources into the active renderer slot."""
-    return _copy_slide_sources(workspace.slides_dir, Path(active_slides_dir))
+    destination = Path(active_slides_dir)
+    copied = _copy_slide_sources(workspace.slides_dir, destination)
+    _sync_generated_font_assets(workspace, destination.parent)
+    return copied

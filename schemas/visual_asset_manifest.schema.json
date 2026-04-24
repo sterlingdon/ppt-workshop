@@ -30,8 +30,15 @@
             "items": { "type": "object" }
           },
           "selected_asset": { "type": "object" },
+          "candidate_ranking": {
+            "type": "array",
+            "items": { "type": "object" }
+          },
           "selection_rationale": { "type": "string" },
           "review_status": { "type": "string" },
+          "research_summary": { "type": "object" },
+          "placement_decision": { "type": "object" },
+          "fallback_applied": { "type": "object" },
           "license_metadata": { "type": "object" },
           "resolution_metadata": { "type": "object" },
           "rollback_scope": {

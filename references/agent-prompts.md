@@ -145,25 +145,32 @@ Responsibilities:
 - Invoke ui-ux-pro-max before creating design_recommendation.json or design_dna.json.
 - Use ui-ux-pro-max as a design director for transferable web/product design principles: hierarchy, typography, palette, spacing, chart language, component polish, and avoid-rules. Do not treat its website/app scope as a reason to skip it, and do not create website navigation, forms, responsive app screens, hover states, or app interaction flows unless the slide content itself is about a product UI.
 - Save the distilled external design recommendation as design_recommendation.json.
+- Create `concept_directions.json` with 2-3 clearly different design directions before locking the deck system. Differences must include composition and hierarchy, not just color choices. Reject timid or template-like options.
 - Use ui-ux-pro-max as the creative design source for the deck's full visual system.
-- Create design_dna.json with source_skill, recommendation_summary, visual_direction, renderer_contract, theme_tokens, visual_language, signature_visual_moves, slide_pattern_assignments, consistency_rules, type_scale, composition_rules, and visual_mandates.
+- Create design_dna.json with source_skill, recommendation_summary, visual_direction, font_preset, renderer_contract, theme_tokens, visual_language, signature_visual_moves, slide_pattern_assignments, consistency_rules, type_scale, composition_rules, and visual_mandates.
+- Lock the deck's opener, section-divider, and data-slide archetypes early. If those archetypes are weak or generic, redesign them before authoring the rest of the deck.
 - Map ui-ux-pro-max colors and typography into `design_dna.json.theme_tokens` and apply those variables directly on the React slide root, as shown in `examples/react-slides/minimal-deck/Slide_3.tsx`.
 - Create outline.json where every slide has a clear audience-facing job.
 - Create slide_blueprint.json before writing React. Each slide blueprint must define role, key message, supporting evidence, locked_copy, visual anchor, layout pattern, and data-ppt marker requirements.
 - In slide_blueprint.json, specify the visual hierarchy, expected title/body/metric scale, focal point, whitespace strategy, and density target for every slide. Do not leave font sizing and composition to ad hoc JSX decisions.
+- Write `visual_asset_research.json` before `visual_asset_plan.json` whenever any slide relies on image generation or high-stakes diagram invention. Record the research query, reject cues, desired composition, and sourcing guidance.
+- Treat `visual_asset_plan.json` as a real decision artifact: include ranking criteria, placement contract, and fallback strategy instead of only naming a route.
 - Read examples/react-slides/minimal-deck/README.md before writing any Slide_N.tsx file, then copy its import, index, and marker patterns.
 - Write React slides in output/projects/<project-id>/slides/.
 - Preserve approved content priorities, data emphasis, and cut decisions.
 - Treat React slide authoring as visual implementation, not a second writing pass. Use locked_copy from slide_blueprint.json for human-facing text; do not rewrite facts, titles, numbers, entities, or conclusions in TSX.
 - Implement presentation-grade craft in the rendered browser slide: strong focal point, deliberate type scale, readable contrast, controlled density, meaningful whitespace, and slide-to-slide rhythm. Do not ship generic web-card layouts, article-like paragraphs, template-looking pages, or uniformly scaled text.
+- Build sequence-level rhythm, not just slide-level correctness. Adjacent slides should not feel like minor variants of the same template unless repetition is itself the point.
 - Follow data-ppt marker rules and the design DNA style system.
 
 Outputs:
 - updated deck_state.json
 - design_recommendation.json
+- concept_directions.json
 - design_dna.json
 - outline.json
 - slide_blueprint.json
+- visual_asset_research.json
 - slides/Slide_N.tsx
 - slides/index.ts
 
@@ -173,11 +180,14 @@ Pass condition:
 Failure behavior:
 - If design_recommendation.json is missing or is not grounded in a ui-ux-pro-max recommendation, stop and create it before design_dna.json.
 - If the design_recommendation query does not explicitly ask ui-ux-pro-max to adapt web/product design principles to a fixed 16:9 PowerPoint deck, rewrite the query and recommendation before continuing.
+- If `concept_directions.json` does not contain meaningful alternatives, create better alternatives before `design_dna.json`.
 - If design_dna.json conflicts with content priorities, fix design_dna.json.
 - If React slides do not reflect `theme_tokens`, fix the slide theme variables before review.
 - If outline.json contains filler, merge, cut, or rewrite slides.
 - If slide_blueprint.json does not specify locked copy and visual anchors, finish the blueprint before coding.
 - If slide_blueprint.json omits type scale, hierarchy, focal point, whitespace, or density guidance, finish those decisions before coding.
+- If `visual_asset_research.json` is missing for a critical image-driven page, create it before asset routing or slide implementation.
+- If too many slides resolve to equal-card or equal-column layouts, redesign the blueprint to restore hierarchy and rhythm before coding.
 - If locked copy does not fit a layout, revise slide_blueprint.json and invalidate downstream artifacts instead of silently rewriting it in React.
 - If React implementation cannot preserve fidelity as native objects, use raster fallback rather than lowering design quality.
 ```
@@ -208,6 +218,7 @@ Responsibilities:
 - Read references/ppt-visual-design.md before reviewing.
 - Inspect the rendered deck using review/full_deck.png and review/slides/*.png with a vision-capable model or explicit human visual review.
 - Judge focal point, hierarchy, title/body/metric scale, composition, information density, whitespace, rhythm, brand consistency, audience usefulness, and craft.
+- Judge distinctiveness as well as polish. A slide can be neat and still fail if it feels interchangeable with a generic template deck.
 - Reject slides that are technically valid but generic, weak, sparse, cluttered, off-theme, monotonous, templated, article-like, or not useful.
 - Record `review_capability.method`, `review_capability.image_input`, `review_capability.model` when available, and the exact `review_capability.inspected_assets` used for the visual judgment.
 - Repair React slide sources directly.
